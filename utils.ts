@@ -53,9 +53,13 @@ export const connect = async (
   };
 };
 
-export const createFilter = (
-  filter?: { tag: string; value: string; compare?: string } | string
-): string => {
+export type Filter = {
+  tag: string;
+  value: string;
+  compare?: string;
+};
+
+export const createFilter = (filter?: Filter | Filter[] | string): string => {
   const handleQuotes = (value: string, single?: boolean) => {
     const quot = single ? "'" : '"';
     if (!value.startsWith(quot) && !value.endsWith(quot)) {
@@ -69,8 +73,10 @@ export const createFilter = (
   if (typeof filter === "string") {
     return handleQuotes(filter);
   }
+  if (Array.isArray(filter)) {
+    return filter.map(createFilter).join(" ");
+  }
   const comp = filter?.compare || "==";
-
   return handleQuotes(
     `(${filter.tag} ${comp} ${handleQuotes(filter.value, true)})`
   );

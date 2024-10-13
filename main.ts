@@ -1,7 +1,7 @@
 import { MPD } from "./mpd.ts";
 import { parseUnknownList } from "./transformers.ts";
-import { connect } from "./utils.ts";
-import type { TCPConnection } from "./utils.ts";
+import { connect, createFilter } from "./utils.ts";
+import type { Filter, TCPConnection } from "./utils.ts";
 
 const getPort = (port?: number | string): number | null => {
   if (typeof port === "string") {
@@ -58,12 +58,32 @@ export class MPDClient {
     await this.mpd.sendMessage("clear");
   }
 
-  async addToQueue(uri: string): Promise<void> {
-    await this.mpd.sendMessage(`add "${uri}"`);
+  /**
+   * Add songs to the queue based on provided filter or uri. If both are provided, uri will be used.
+   *
+   */
+  async addToQueue(params: {
+    filter?: Filter | Filter[] | string;
+    uri?: string;
+  }): Promise<void> {
+    if (params.uri) {
+      await this.mpd.sendMessage(`add "${params.uri}"`);
+    } else if (params.filter) {
+      console.log(`findadd "${createFilter(params.filter)}"`);
+      await this.mpd.sendMessage(`findadd ${createFilter(params.filter)}`);
+    }
   }
 
-  async addAlbumToQueue(album: string): Promise<void> {
-    await this.mpd.sendMessage(`findadd album "${album}"`);
+  /**
+   * Add an album to the queue
+   */
+  async addAlbumToQueue(album: string, artist?: string): Promise<void> {
+    const filterParams: Filter[] = [{ tag: "album", value: album }];
+    if (artist) {
+      filterParams.push({ tag: "artist", value: artist });
+    }
+    const filter = createFilter(filterParams);
+    await this.mpd.sendMessage(`findadd ${filter}`);
   }
 
   disconnect(): void {

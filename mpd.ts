@@ -1,5 +1,5 @@
 import { assert } from "@std/assert";
-import { createFilter, type TCPConnection } from "./utils.ts";
+import { createFilter, type TCPConnection, type Filter } from "./utils.ts";
 import {
   parse,
   parseUnknown,
@@ -17,19 +17,6 @@ export class ACKError extends Error {
   }
 }
 
-type Filter =
-  | {
-      /**
-       * Type of tag to search for.
-       */
-      tag: string;
-      /**
-       * Value of the tag to search for.
-       */
-      value: string;
-    }
-  | string;
-
 type ListOptions = {
   /**
    * Type of list to retrieve.
@@ -38,7 +25,7 @@ type ListOptions = {
   /**
    * Filter to apply to the list.
    */
-  filter?: Filter;
+  filter?: Filter | Filter[] | string;
 };
 
 type ListGroupOptions = {
@@ -49,7 +36,7 @@ type ListGroupOptions = {
   /**
    * Filter to apply to the list.
    */
-  filter?: Filter;
+  filter?: Filter | Filter[] | string;
   /**
    * Grouping to apply to the list.
    */
@@ -105,7 +92,7 @@ export class MPD {
    * @param window window can be used to query only a portion of the real response. The parameter is two zero-based record numbers; a start number and an end number.
    */
   async find(options: {
-    filter: { tag: string; value: string } | string;
+    filter: Filter | Filter[] | string;
     sort?: string;
     window?: [number, number];
   }): Promise<Record<string, string>[]> {
@@ -134,6 +121,7 @@ export class MPD {
       msg += ` group ${options.group}`;
     }
     const result = await this.sendMessage(msg);
+    console.log(result);
     if (isGroupListOptions(options)) {
       return parseUnknownGroup(result, options.group);
     }

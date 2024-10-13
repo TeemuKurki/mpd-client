@@ -1,5 +1,10 @@
 import { describe, it, beforeEach } from "jsr:@std/testing/bdd";
-import { spy, assertSpyCall } from "jsr:@std/testing/mock";
+import {
+  spy,
+  type Spy,
+  assertSpyCallArgs,
+  assertSpyCall,
+} from "jsr:@std/testing/mock";
 import { MPDClient } from "./main.ts";
 import type { TCPConnection } from "./utils.ts";
 import {
@@ -9,7 +14,6 @@ import {
   AssertionError,
   assertObjectMatch,
   assertRejects,
-  unimplemented,
 } from "@std/assert";
 import { ACKError } from "./mpd.ts";
 
@@ -28,6 +32,19 @@ const mockConnection = async (): Promise<TCPConnection> => {
 
 let connectionSpy = spy(mockConnection);
 
+const assertSpyConnectArgs = (
+  spy: Spy,
+  callIndex: number,
+  expectedArgs: Uint8Array[]
+) => {
+  const decoder = new TextDecoder();
+  const args = spy.calls[callIndex].args;
+  assertEquals(args.length, expectedArgs.length);
+  for (let i = 0; i < args.length; i++) {
+    assertEquals(decoder.decode(args[i]), decoder.decode(expectedArgs[i]));
+  }
+};
+
 beforeEach(() => {
   connectionSpy = spy(connectionSpy.original);
   writeSpy = spy(writeSpy.original);
@@ -39,33 +56,33 @@ beforeEach(() => {
 describe("MPD class tests", () => {
   it("should be able to connect to the server", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
-    assertSpyCall(connectionSpy, 0, { args: ["localhost", 6600] });
+    assertSpyCallArgs(connectionSpy, 0, ["localhost", 6600]);
     assertInstanceOf(client, MPDClient);
   });
   it("should be able to send a message", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode("custom message\n");
     await client.mpd.sendMessage("custom message");
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
   it("should be able get current song info", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode("currentsong\n");
     await client.mpd.currentSong();
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
 
   it("should be able get status info", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode("status\n");
     await client.mpd.status();
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
   it("should be able get stats info", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode("stats\n");
     await client.mpd.stats();
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
   it("should be able to make a find request", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
@@ -80,7 +97,7 @@ describe("MPD class tests", () => {
       sort: "-date",
       window: [0, 10],
     });
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
   it("should be able to make a list request", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
@@ -94,7 +111,7 @@ describe("MPD class tests", () => {
         value: "some artist",
       },
     });
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
   it("should be able to make a list request with group", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
@@ -109,7 +126,7 @@ describe("MPD class tests", () => {
       },
       group: "composer",
     });
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
   describe("Error handling", () => {
     it("should throw an error if not connected", async () => {
@@ -137,26 +154,26 @@ describe("MPD class tests", () => {
 describe("MPDClient class tests", () => {
   it("should be able to connect to the server", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
-    assertSpyCall(connectionSpy, 0, { args: ["localhost", 6600] });
+    assertSpyCallArgs(connectionSpy, 0, ["localhost", 6600]);
     assertInstanceOf(client, MPDClient);
   });
   it("should be able to pause playback", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode("pause 1\n");
     await client.pause(true);
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
   it("should be able to resume playback", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode("pause 0\n");
     await client.pause(false);
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
   it("should be able to toggle playback", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode("pause\n");
     await client.pause();
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
   it("should be able to close the connection", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
@@ -213,7 +230,7 @@ describe("MPDClient class tests", () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode("playlistinfo\n");
     const data = await client.queue();
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
     assertEquals(data.length, 2);
     assertObjectMatch(data[0], { file: "file1", Track: "1" });
     assertObjectMatch(data[1], { file: "file2", Track: "2" });
@@ -222,18 +239,35 @@ describe("MPDClient class tests", () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode("clear\n");
     await client.clearQueue();
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
   it("should be able to add a track to the queue", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
-    await client.addToQueue("file1");
+    await client.addToQueue({ uri: "file1" });
     const input = new TextEncoder().encode('add "file1"\n');
-    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
-  /*it("shuld be able to add album to the queue", async () => {
-    unimplemented();
+  it("should be able to add a track to the queue with filter", async () => {
+    const client = await MPDClient.connect("localhost", 6600, connectionSpy);
+    await client.addToQueue({ filter: { tag: "track", value: "track1" } });
+    const input = new TextEncoder().encode("findadd \"(track == 'track1')\"\n");
+    assertSpyConnectArgs(writeSpy, 0, [input]);
   });
-  it("should be able to add songs by artist to the queue", async () => {
+  it("should be able to add album to the queue", async () => {
+    const client = await MPDClient.connect("localhost", 6600, connectionSpy);
+    await client.addAlbumToQueue("album1");
+    const input = new TextEncoder().encode("findadd \"(album == 'album1')\"\n");
+    assertSpyConnectArgs(writeSpy, 0, [input]);
+  });
+  it("should be able to add album to the queue", async () => {
+    const client = await MPDClient.connect("localhost", 6600, connectionSpy);
+    await client.addAlbumToQueue("album1", "artist1");
+    const input = new TextEncoder().encode(
+      "findadd \"(album == 'album1')\" \"(artist == 'artist1')\"\n"
+    );
+    assertSpyConnectArgs(writeSpy, 0, [input]);
+  });
+  /*it("should be able to add songs by artist to the queue", async () => {
     unimplemented();
   });
   it("should be able to add songs by composer to the queue", async () => {
