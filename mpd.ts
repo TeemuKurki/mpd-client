@@ -1,5 +1,5 @@
 import { assert } from "@std/assert";
-import type { TCPConnection } from "./utils.ts";
+import { createFilter, type TCPConnection } from "./utils.ts";
 import {
   parse,
   parseUnknown,
@@ -94,16 +94,6 @@ export class MPD {
     return parse(result, StatsTransform);
   }
 
-  #createFilter(filter?: { tag: string; value: string } | string): string {
-    if (!filter) {
-      return "";
-    }
-    if (typeof filter === "string") {
-      return filter;
-    }
-    return `${filter.tag} ${filter.value}`;
-  }
-
   /**
    * {@link https://mpd.readthedocs.io/en/stable/protocol.html#command-find|Find}
    *
@@ -119,7 +109,7 @@ export class MPD {
     sort?: string;
     window?: [number, number];
   }): Promise<Record<string, string>[]> {
-    let msg = `find ${this.#createFilter(options.filter)}`;
+    let msg = `find ${createFilter(options.filter)}`;
     if (options.sort) {
       msg += ` sort ${options.sort}`;
     }
@@ -138,7 +128,7 @@ export class MPD {
   async list(
     options: ListOptions | ListGroupOptions
   ): Promise<Record<string, string>[] | { group: string; values: string[] }[]> {
-    let msg = `list ${options.type} ${this.#createFilter(options.filter)}`;
+    let msg = `list ${options.type} ${createFilter(options.filter)}`;
 
     if (isGroupListOptions(options)) {
       msg += ` group ${options.group}`;

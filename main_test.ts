@@ -7,6 +7,7 @@ import {
   assertEquals,
   assertInstanceOf,
   AssertionError,
+  assertObjectMatch,
   assertRejects,
   unimplemented,
 } from "@std/assert";
@@ -69,7 +70,7 @@ describe("MPD class tests", () => {
   it("should be able to make a find request", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode(
-      "find track some song sort -date window 0:10\n"
+      "find \"(track == 'some song')\" sort -date window 0:10\n"
     );
     await client.mpd.find({
       filter: {
@@ -83,7 +84,9 @@ describe("MPD class tests", () => {
   });
   it("should be able to make a list request", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
-    const input = new TextEncoder().encode("list album artist some artist\n");
+    const input = new TextEncoder().encode(
+      "list album \"(artist == 'some artist')\"\n"
+    );
     await client.mpd.list({
       type: "album",
       filter: {
@@ -96,7 +99,7 @@ describe("MPD class tests", () => {
   it("should be able to make a list request with group", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode(
-      "list album artist some artist group composer\n"
+      "list album \"(artist == 'some artist')\" group composer\n"
     );
     await client.mpd.list({
       type: "album",
@@ -110,7 +113,7 @@ describe("MPD class tests", () => {
   });
   describe("Error handling", () => {
     it("should throw an error if not connected", async () => {
-      const client = await MPDClient.connect();
+      const client = await MPDClient.connect("localhost", 6600, connectionSpy);
       client.disconnect();
       const error = await assertRejects(
         () => client.mpd.currentSong(),
@@ -165,6 +168,7 @@ describe("MPDClient class tests", () => {
     client.disconnect();
     assertSpyCall(closeSpy, 0);
   });
+  /*
   it("should list playlists", async () => {
     unimplemented();
   });
@@ -201,10 +205,32 @@ describe("MPDClient class tests", () => {
   it("should be able to stop playing", async () => {
     unimplemented();
   });
-  it("should be able to add a track to the queue", async () => {
-    unimplemented();
+  */
+  it("should be able to list queue", async () => {
+    readAllSpy = spy(
+      async () => "file: file1\nTrack: 1\n\nfile: file2\nTrack: 2\n\n"
+    );
+    const client = await MPDClient.connect("localhost", 6600, connectionSpy);
+    const input = new TextEncoder().encode("playlistinfo\n");
+    const data = await client.queue();
+    assertSpyCall(writeSpy, 0, { args: [input] });
+    assertEquals(data.length, 2);
+    assertObjectMatch(data[0], { file: "file1", Track: "1" });
+    assertObjectMatch(data[1], { file: "file2", Track: "2" });
   });
-  it("shuld be able to add album to the queue", async () => {
+  it("sould be able to clear queue", async () => {
+    const client = await MPDClient.connect("localhost", 6600, connectionSpy);
+    const input = new TextEncoder().encode("clear\n");
+    await client.clearQueue();
+    assertSpyCall(writeSpy, 0, { args: [input] });
+  });
+  it("should be able to add a track to the queue", async () => {
+    const client = await MPDClient.connect("localhost", 6600, connectionSpy);
+    await client.addToQueue("file1");
+    const input = new TextEncoder().encode('add "file1"\n');
+    assertSpyCall(writeSpy, 0, { args: [input] });
+  });
+  /*it("shuld be able to add album to the queue", async () => {
     unimplemented();
   });
   it("should be able to add songs by artist to the queue", async () => {
@@ -225,10 +251,10 @@ describe("MPDClient class tests", () => {
   it("should be able to clear the queue", async () => {
     unimplemented();
   });
-
+*/
   describe("Error handling", () => {
     it("should throw an error if not connected", async () => {
-      const client = await MPDClient.connect();
+      const client = await MPDClient.connect("localhost", 6600, connectionSpy);
       client.disconnect();
       const error = await assertRejects(
         () => client.pause(),

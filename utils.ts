@@ -52,3 +52,26 @@ export const connect = async (
     write: (data: Uint8Array) => connection.write(data),
   };
 };
+
+export const createFilter = (
+  filter?: { tag: string; value: string; compare?: string } | string
+): string => {
+  const handleQuotes = (value: string, single?: boolean) => {
+    const quot = single ? "'" : '"';
+    if (!value.startsWith(quot) && !value.endsWith(quot)) {
+      return `${quot}${value}${quot}`;
+    }
+    return value;
+  };
+  if (!filter) {
+    return "";
+  }
+  if (typeof filter === "string") {
+    return handleQuotes(filter);
+  }
+  const comp = filter?.compare || "==";
+
+  return handleQuotes(
+    `(${filter.tag} ${comp} ${handleQuotes(filter.value, true)})`
+  );
+};

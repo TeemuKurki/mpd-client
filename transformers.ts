@@ -75,17 +75,29 @@ export const parseUnknown = (input: string): Record<string, string> => {
     }, {} as Record<string, string>);
 };
 
+/**
+ *
+ * @param input String returned from MPD
+ * @param separatorTag Tag to separate groups. If not set, defaults to the first key in the list
+ */
 export const parseUnknownList = (
   input: string,
-  separatorTag: string
+  separatorTag?: string
 ): Record<string, string>[] => {
   const result: Record<string, string>[] = [];
+  let separator = separatorTag || "";
   input
     .split("\n")
     .filter((line) => line.includes(": "))
-    .forEach((line) => {
-      const [key, value] = line.split(": ", 2);
-      if (key.toLowerCase() === separatorTag.toLowerCase()) {
+    .forEach((line, i) => {
+      const separatorIndex = line.indexOf(": ");
+      const key = line.substring(0, separatorIndex);
+      const value = line.substring(separatorIndex + 2);
+      if (!separatorTag && i === 0) {
+        separator = key;
+      }
+
+      if (key.toLowerCase() === separator.toLowerCase()) {
         result.push({
           [key]: value,
         });
