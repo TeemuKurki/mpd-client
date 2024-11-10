@@ -62,7 +62,7 @@ type FilterCompareMethod =
   | "!contains"
   | "starts_with"
   | "=~"
-  | "!~"
+  | "!~";
 
 //TODO: Enable non-tag based filters (ie. audioFormat, prio etc)
 //TODO: Enable negate option

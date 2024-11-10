@@ -83,7 +83,7 @@ export class MPDClient {
     const filter = createFilter(filterParams);
     await this.mpd.sendMessage(`findadd ${filter}`);
   }
-  
+
   disconnect(): void {
     if (this.mpd.conn) {
       this.mpd.conn.close();

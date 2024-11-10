@@ -96,8 +96,8 @@ export class MPD {
   #port: number;
   constructor(connection: TCPConnection, host: string, port: number) {
     this.conn = connection;
-    this.#host = host
-    this.#port = port
+    this.#host = host;
+    this.#port = port;
   }
   async sendMessage(message: string): Promise<string> {
     assert(this.conn, "Not connected to MPD");
@@ -172,23 +172,26 @@ export class MPD {
     return parseUnknownList(result, options.type);
   }
 
-  async idle(subsystems: string){
-    if(!this.idling) {
+  async idle(subsystems: string) {
+    if (!this.idling) {
       const worker = new Worker(
         new URL("./idleWorker.ts", import.meta.url).href,
         {
           type: "module",
         },
       );
-      worker.postMessage({subsystems: subsystems, host: this.#host, port: this.#port});
+      worker.postMessage({
+        subsystems: subsystems,
+        host: this.#host,
+        port: this.#port,
+      });
       worker.onmessage = (e) => {
-        console.log(e.data)
-        this.idling = false
-      }
-      this.idling = true
-    }
-    else {
-      console.log("Already idling")
+        console.log(e.data);
+        this.idling = false;
+      };
+      this.idling = true;
+    } else {
+      console.log("Already idling");
     }
   }
 }
