@@ -1,5 +1,5 @@
 import { assert } from "@std/assert";
-import { createFilter, type TCPConnection, type Filter } from "./utils.ts";
+import { createFilter, type Filter, type TCPConnection } from "./utils.ts";
 import {
   parse,
   parseUnknown,
@@ -17,11 +17,51 @@ export class ACKError extends Error {
   }
 }
 
+/**
+ * See meanings of each tags
+ * {@link https://mpd.readthedocs.io/en/latest/protocol.html#tags}
+ */
+export type Tag =
+  | "artist"
+  | "artistsort"
+  | "album"
+  | "albumsort"
+  | "albumartist"
+  | "albumartistsort"
+  | "title"
+  | "titlesort"
+  | "track"
+  | "name"
+  | "genre"
+  | "mood"
+  | "date"
+  | "composer"
+  | "composersort"
+  | "performer"
+  | "conductor"
+  | "work"
+  | "ensemble"
+  | "movement"
+  | "movementnumber"
+  | "showmovement"
+  | "location"
+  | "grouping"
+  | "comment"
+  | "disc"
+  | "label"
+  | "musicbrainz_artistid"
+  | "musicbrainz_albumid"
+  | "musicbrainz_albumartistid"
+  | "musicbrainz_trackid"
+  | "musicbrainz_releasegroupid"
+  | "musicbrainz_releasetrackid"
+  | "musicbrainz_workid";
+
 type ListOptions = {
   /**
    * Type of list to retrieve.
    */
-  type: string;
+  type: Tag;
   /**
    * Filter to apply to the list.
    */
@@ -44,15 +84,20 @@ type ListGroupOptions = {
 };
 
 const isGroupListOptions = (
-  options: ListOptions | ListGroupOptions
+  options: ListOptions | ListGroupOptions,
 ): options is ListGroupOptions => {
   return "group" in options;
 };
 
 export class MPD {
   conn: TCPConnection | null = null;
-  constructor(connection: TCPConnection) {
+  idling: boolean = false;
+  #host: string;
+  #port: number;
+  constructor(connection: TCPConnection, host: string, port: number) {
     this.conn = connection;
+    this.#host = host
+    this.#port = port
   }
   async sendMessage(message: string): Promise<string> {
     assert(this.conn, "Not connected to MPD");
@@ -109,11 +154,11 @@ export class MPD {
   }
 
   async list(
-    options: ListGroupOptions
+    options: ListGroupOptions,
   ): Promise<{ group: string; values: string[] }[]>;
   async list(options: ListOptions): Promise<Record<string, string>[]>;
   async list(
-    options: ListOptions | ListGroupOptions
+    options: ListOptions | ListGroupOptions,
   ): Promise<Record<string, string>[] | { group: string; values: string[] }[]> {
     let msg = `list ${options.type} ${createFilter(options.filter)}`;
 
@@ -121,10 +166,29 @@ export class MPD {
       msg += ` group ${options.group}`;
     }
     const result = await this.sendMessage(msg);
-    console.log(result);
     if (isGroupListOptions(options)) {
       return parseUnknownGroup(result, options.group);
     }
     return parseUnknownList(result, options.type);
+  }
+
+  async idle(subsystems: string){
+    if(!this.idling) {
+      const worker = new Worker(
+        new URL("./idleWorker.ts", import.meta.url).href,
+        {
+          type: "module",
+        },
+      );
+      worker.postMessage({subsystems: subsystems, host: this.#host, port: this.#port});
+      worker.onmessage = (e) => {
+        console.log(e.data)
+        this.idling = false
+      }
+      this.idling = true
+    }
+    else {
+      console.log("Already idling")
+    }
   }
 }

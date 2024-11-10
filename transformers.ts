@@ -13,8 +13,7 @@ export const StatusTransform = {
   volume: Number,
   repeat: Bool,
   random: Bool,
-  single: (value: string) =>
-    value === "1" ? 1 : value === "0" ? 0 : "oneshot",
+  single: (value: string) => value === "1" ? 1 : value === "0" ? 0 : "oneshot",
   consume: Bool,
   playlist: Number,
   playlistlength: Number,
@@ -48,7 +47,7 @@ export const StatsTransform = {
 export const parse = <T extends Record<string, any>>(
   input: string,
   transformer: T,
-  allowUnknownKeys = false
+  allowUnknownKeys = false,
 ): ResolvedTransformer<T> => {
   return input
     .split("\n")
@@ -76,13 +75,12 @@ export const parseUnknown = (input: string): Record<string, string> => {
 };
 
 /**
- *
  * @param input String returned from MPD
  * @param separatorTag Tag to separate groups. If not set, defaults to the first key in the list
  */
 export const parseUnknownList = (
   input: string,
-  separatorTag?: string
+  separatorTag?: string,
 ): Record<string, string>[] => {
   const result: Record<string, string>[] = [];
   let separator = separatorTag || "";
@@ -112,7 +110,7 @@ export const parseUnknownList = (
 };
 export const parseUnknownGroup = (
   input: string,
-  groupBy: string
+  groupBy: string,
 ): { group: string; values: string[] }[] => {
   const res: { group: string; values: string[] }[] = [];
   input

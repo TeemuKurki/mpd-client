@@ -1,9 +1,9 @@
-import { describe, it, beforeEach } from "jsr:@std/testing/bdd";
+import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import {
-  spy,
-  type Spy,
-  assertSpyCallArgs,
   assertSpyCall,
+  assertSpyCallArgs,
+  type Spy,
+  spy,
 } from "jsr:@std/testing/mock";
 import { MPDClient } from "./main.ts";
 import type { TCPConnection } from "./utils.ts";
@@ -35,7 +35,7 @@ let connectionSpy = spy(mockConnection);
 const assertSpyConnectArgs = (
   spy: Spy,
   callIndex: number,
-  expectedArgs: Uint8Array[]
+  expectedArgs: Uint8Array[],
 ) => {
   const decoder = new TextDecoder();
   const args = spy.calls[callIndex].args;
@@ -87,7 +87,7 @@ describe("MPD class tests", () => {
   it("should be able to make a find request", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode(
-      "find \"(track == 'some song')\" sort -date window 0:10\n"
+      "find \"(track == 'some song')\" sort -date window 0:10\n",
     );
     await client.mpd.find({
       filter: {
@@ -102,7 +102,7 @@ describe("MPD class tests", () => {
   it("should be able to make a list request", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode(
-      "list album \"(artist == 'some artist')\"\n"
+      "list album \"(artist == 'some artist')\"\n",
     );
     await client.mpd.list({
       type: "album",
@@ -116,7 +116,7 @@ describe("MPD class tests", () => {
   it("should be able to make a list request with group", async () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode(
-      "list album \"(artist == 'some artist')\" group composer\n"
+      "list album \"(artist == 'some artist')\" group composer\n",
     );
     await client.mpd.list({
       type: "album",
@@ -134,7 +134,7 @@ describe("MPD class tests", () => {
       client.disconnect();
       const error = await assertRejects(
         () => client.mpd.currentSong(),
-        "Should throw an error"
+        "Should throw an error",
       );
       assert(error instanceof AssertionError);
       assertEquals(error.message, "Not connected to MPD");
@@ -144,7 +144,7 @@ describe("MPD class tests", () => {
       const client = await MPDClient.connect("localhost", 6600, connectionSpy);
       const error = await assertRejects(
         () => client.mpd.status(),
-        "Should throw an ACKError"
+        "Should throw an ACKError",
       );
       assertInstanceOf(error, ACKError);
       assertEquals(error.message, "ACK some error\n");
@@ -225,7 +225,7 @@ describe("MPDClient class tests", () => {
   */
   it("should be able to list queue", async () => {
     readAllSpy = spy(
-      async () => "file: file1\nTrack: 1\n\nfile: file2\nTrack: 2\n\n"
+      async () => "file: file1\nTrack: 1\n\nfile: file2\nTrack: 2\n\n",
     );
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     const input = new TextEncoder().encode("playlistinfo\n");
@@ -263,7 +263,7 @@ describe("MPDClient class tests", () => {
     const client = await MPDClient.connect("localhost", 6600, connectionSpy);
     await client.addAlbumToQueue("album1", "artist1");
     const input = new TextEncoder().encode(
-      "findadd \"(album == 'album1')\" \"(artist == 'artist1')\"\n"
+      "findadd \"(album == 'album1')\" \"(artist == 'artist1')\"\n",
     );
     assertSpyConnectArgs(writeSpy, 0, [input]);
   });
@@ -285,14 +285,14 @@ describe("MPDClient class tests", () => {
   it("should be able to clear the queue", async () => {
     unimplemented();
   });
-*/
+  */
   describe("Error handling", () => {
     it("should throw an error if not connected", async () => {
       const client = await MPDClient.connect("localhost", 6600, connectionSpy);
       client.disconnect();
       const error = await assertRejects(
         () => client.pause(),
-        "Should throw an error"
+        "Should throw an error",
       );
       assert(error instanceof AssertionError);
       assertEquals(error.message, "Not connected to MPD");

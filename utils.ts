@@ -1,7 +1,9 @@
+import type { Tag } from "./mpd.ts";
+
 const MSG_END = [/^OK$/, /^ACK /];
 
 export const readMessageStream = async (
-  reader: ReadableStreamDefaultReader<Uint8Array>
+  reader: ReadableStreamDefaultReader<Uint8Array>,
 ) => {
   const chunks: string[] = [];
   const decoder = new TextDecoder();
@@ -36,7 +38,7 @@ export type TCPConnection = {
 
 export const connect = async (
   hostname: string,
-  port: number
+  port: number,
 ): Promise<TCPConnection> => {
   const connection = await Deno.connect({
     hostname,
@@ -53,10 +55,24 @@ export const connect = async (
   };
 };
 
+type FilterCompareMethod =
+  | "=="
+  | "!="
+  | "contains"
+  | "!contains"
+  | "starts_with"
+  | "=~"
+  | "!~"
+
+//TODO: Enable non-tag based filters (ie. audioFormat, prio etc)
+//TODO: Enable negate option
 export type Filter = {
-  tag: string;
+  tag: Tag;
   value: string;
-  compare?: string;
+  /**
+   * @param {string} [compare="=="] Filter compare expression method. See possible methods {@link https://mpd.readthedocs.io/en/latest/protocol.html#filters}
+   */
+  compare?: FilterCompareMethod;
 };
 
 export const createFilter = (filter?: Filter | Filter[] | string): string => {
@@ -78,6 +94,6 @@ export const createFilter = (filter?: Filter | Filter[] | string): string => {
   }
   const comp = filter?.compare || "==";
   return handleQuotes(
-    `(${filter.tag} ${comp} ${handleQuotes(filter.value, true)})`
+    `(${filter.tag} ${comp} ${handleQuotes(filter.value, true)})`,
   );
 };

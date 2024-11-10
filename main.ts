@@ -15,7 +15,6 @@ const getHost = (host?: string): string | null => {
 
 export class MPDClient {
   mpd: MPD;
-  info: string = "";
   constructor(mpd: MPD) {
     this.mpd = mpd;
   }
@@ -27,8 +26,8 @@ export class MPDClient {
     port?: number,
     connectFn: (
       hostname: string,
-      port: number
-    ) => Promise<TCPConnection> = connect
+      port: number,
+    ) => Promise<TCPConnection> = connect,
   ): Promise<MPDClient> {
     const _host = getHost(hostname || Deno.env.get("MPD_HOST"));
     const _port = getPort(port || Deno.env.get("MPD_PORT"));
@@ -36,7 +35,7 @@ export class MPDClient {
       throw new Error("No host or port provided");
     }
     const connection = await connectFn(_host, _port);
-    return new MPDClient(new MPD(connection));
+    return new MPDClient(new MPD(connection, _host, _port));
   }
 
   /**
@@ -60,7 +59,6 @@ export class MPDClient {
 
   /**
    * Add songs to the queue based on provided filter or uri. If both are provided, uri will be used.
-   *
    */
   async addToQueue(params: {
     filter?: Filter | Filter[] | string;
@@ -85,7 +83,7 @@ export class MPDClient {
     const filter = createFilter(filterParams);
     await this.mpd.sendMessage(`findadd ${filter}`);
   }
-
+  
   disconnect(): void {
     if (this.mpd.conn) {
       this.mpd.conn.close();
