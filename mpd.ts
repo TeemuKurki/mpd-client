@@ -201,7 +201,6 @@ export class MPD {
           },
         );
         worker.postMessage({
-          type: "idle",
           subsystems: subsystems,
           host: this.#host,
           port: this.#port,
