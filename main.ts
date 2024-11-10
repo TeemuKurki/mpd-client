@@ -84,6 +84,14 @@ export class MPDClient {
     await this.mpd.sendMessage(`findadd ${filter}`);
   }
 
+  async info() {
+    return {
+      currentSong: await this.mpd.currentSong(),
+      status: await this.mpd.status(),
+      stats: await this.mpd.stats()
+    } 
+  }
+
   disconnect(): void {
     if (this.mpd.conn) {
       this.mpd.conn.close();
