@@ -99,9 +99,16 @@ export class MPD {
     this.#host = host;
     this.#port = port;
   }
-  async sendMessage(message: string): Promise<string> {
+
+
+  async sendMessage(message: string): Promise<string>
+  async sendMessage(message: string, buffer?: Uint8Array): Promise<number | null>
+  async sendMessage(message: string, buffer?: Uint8Array): Promise<string | number | null> {
     assert(this.conn, "Not connected to MPD");
     await this.conn.write(new TextEncoder().encode(message + "\n"));
+    if(buffer) {
+      return this.conn.read(buffer)
+    }
     return this.conn.readAll();
   }
 
@@ -172,26 +179,45 @@ export class MPD {
     return parseUnknownList(result, options.type);
   }
 
-  async idle(subsystems: string) {
-    if (!this.idling) {
-      const worker = new Worker(
-        new URL("./idleWorker.ts", import.meta.url).href,
-        {
-          type: "module",
-        },
-      );
-      worker.postMessage({
-        subsystems: subsystems,
-        host: this.#host,
-        port: this.#port,
-      });
-      worker.onmessage = (e) => {
-        console.log(e.data);
-        this.idling = false;
-      };
-      this.idling = true;
-    } else {
-      console.log("Already idling");
+ /*  async noidle(): Promise<string> {
+    if(this.idling){
+      this.idling = false
+      const res = await this.sendMessage("noidle", new Uint8Array(100))
+      if(res) {
+        return res.toString()
+      }
+      return ""
     }
+    return ""
+  } */
+
+  idle(subsystems: string): Promise<string> {
+    return new Promise((res, rej) => {
+      if (!this.idling) {
+        const worker = new Worker(
+          new URL("./idleWorker.ts", import.meta.url).href,
+          {
+            type: "module",
+          },
+        );
+        worker.postMessage({
+          type: "idle",
+          subsystems: subsystems,
+          host: this.#host,
+          port: this.#port,
+        });
+        worker.onmessage = (e) => {
+          this.idling = false;
+          res(e.data)
+        };
+        worker.onerror = (e) => {
+          this.idling = false;
+          rej(e.error)
+        }
+        this.idling = true;
+      } else {
+        rej(new Error("Already idling"))
+      }
+    });
   }
 }
