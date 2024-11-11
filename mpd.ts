@@ -72,7 +72,7 @@ type ListGroupOptions = {
   /**
    * Type of list to retrieve.
    */
-  type: string;
+  type: Tag;
   /**
    * Filter to apply to the list.
    */
@@ -80,7 +80,7 @@ type ListGroupOptions = {
   /**
    * Grouping to apply to the list.
    */
-  group: string;
+  group: Tag;
 };
 
 const isGroupListOptions = (
@@ -100,16 +100,24 @@ export class MPD {
     this.#port = port;
   }
 
-
-  async sendMessage(message: string): Promise<string>
-  async sendMessage(message: string, buffer?: Uint8Array): Promise<number | null>
-  async sendMessage(message: string, buffer?: Uint8Array): Promise<string | number | null> {
+  /**
+   * Send message to MPD and returns response
+   * @param message Message to send
+   * @param binary If true, data in Uint8Array format. Else return as string  
+   */
+  async sendMessage(message: string): Promise<string> 
+  async sendMessage(message: string, binary: false): Promise<string> 
+  async sendMessage(message: string, binary: true): Promise<Uint8Array> 
+  async sendMessage(message: string, binary?: boolean): Promise<string | Uint8Array> {
     assert(this.conn, "Not connected to MPD");
-    await this.conn.write(new TextEncoder().encode(message + "\n"));
-    if(buffer) {
-      return this.conn.read(buffer)
+    if (this.idling) {
+      //console.log("Idling, sending noidle")
+      const noidleBuffer = new Uint8Array(1);
+      await this.conn.write(new TextEncoder().encode("noidle\n"));
+      await this.conn.read(noidleBuffer);
     }
-    return this.conn.readAll();
+    await this.conn.write(new TextEncoder().encode(message + "\n"));
+    return this.conn.readAll(binary);
   }
 
   async currentSong(): Promise<Record<string, string>> {
@@ -145,8 +153,8 @@ export class MPD {
    */
   async find(options: {
     filter: Filter | Filter[] | string;
-    sort?: string;
-    window?: [number, number];
+    sort?: Tag;
+    window?: [start: number, end: number];
   }): Promise<Record<string, string>[]> {
     let msg = `find ${createFilter(options.filter)}`;
     if (options.sort) {
@@ -179,22 +187,11 @@ export class MPD {
     return parseUnknownList(result, options.type);
   }
 
- /*  async noidle(): Promise<string> {
-    if(this.idling){
-      this.idling = false
-      const res = await this.sendMessage("noidle", new Uint8Array(100))
-      if(res) {
-        return res.toString()
-      }
-      return ""
-    }
-    return ""
-  } */
-
   idle(subsystems: string): Promise<string> {
     return new Promise((res, rej) => {
+      let worker: Worker;
       if (!this.idling) {
-        const worker = new Worker(
+        worker = new Worker(
           new URL("./idleWorker.ts", import.meta.url).href,
           {
             type: "module",
@@ -207,16 +204,44 @@ export class MPD {
         });
         worker.onmessage = (e) => {
           this.idling = false;
-          res(e.data)
+          res(e.data);
         };
         worker.onerror = (e) => {
           this.idling = false;
-          rej(e.error)
-        }
+          rej(e.error);
+        };
         this.idling = true;
       } else {
-        rej(new Error("Already idling"))
+        rej(new Error("Already idling"));
       }
     });
+  }
+
+
+  /**
+   * Execute command list call and return all values in one object
+   * @returns Command list responses objects combined into single object
+   */
+  async commandList(...commands: string[]): Promise<Record<string, string>>{
+    const msgList = ["command_list_begin", ...commands, "command_list_end"];
+    const msg = msgList.join("\n")
+    const response = await this.sendMessage(msg)
+    return parseUnknown(response)
+  }
+  /**
+   * Execute command list ok call and return each command response value in own object
+   * @returns Command list response objects in a list
+   */
+  async commandListOK(...commands: string[]): Promise<Record<string, string>[]>{
+    const msgList = ["command_list_ok_begin", ...commands, "command_list_end"];
+    const msg = msgList.join("\n")
+    const response = await this.sendMessage(msg)
+    const groups = response.split("list_OK").map(parseUnknown)
+    const last = groups.at(-1);
+    //If last grou is empty, remove it. Happens on successful calls
+    if(last && Object.keys(last).length === 0) {
+      groups.pop()
+    }
+    return groups
   }
 }

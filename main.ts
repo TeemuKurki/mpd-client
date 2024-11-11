@@ -88,8 +88,8 @@ export class MPDClient {
     return {
       currentSong: await this.mpd.currentSong(),
       status: await this.mpd.status(),
-      stats: await this.mpd.stats()
-    } 
+      stats: await this.mpd.stats(),
+    };
   }
 
   disconnect(): void {
