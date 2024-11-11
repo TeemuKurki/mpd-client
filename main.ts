@@ -92,6 +92,10 @@ export class MPDClient {
     };
   }
 
+  currentSong(): Promise<Record<string, string>>{
+    return this.mpd.currentSong()
+  }
+
   disconnect(): void {
     if (this.mpd.conn) {
       this.mpd.conn.close();

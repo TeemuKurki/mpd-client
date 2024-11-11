@@ -244,4 +244,8 @@ export class MPD {
     }
     return groups
   }
+
+  ping(){
+    return this.sendMessage("ping")
+  }
 }
