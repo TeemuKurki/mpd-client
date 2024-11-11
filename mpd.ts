@@ -103,12 +103,15 @@ export class MPD {
   /**
    * Send message to MPD and returns response
    * @param message Message to send
-   * @param binary If true, data in Uint8Array format. Else return as string  
+   * @param binary If true, data in Uint8Array format. Else return as string
    */
-  async sendMessage(message: string): Promise<string> 
-  async sendMessage(message: string, binary: false): Promise<string> 
-  async sendMessage(message: string, binary: true): Promise<Uint8Array> 
-  async sendMessage(message: string, binary?: boolean): Promise<string | Uint8Array> {
+  async sendMessage(message: string): Promise<string>;
+  async sendMessage(message: string, binary: false): Promise<string>;
+  async sendMessage(message: string, binary: true): Promise<Uint8Array>;
+  async sendMessage(
+    message: string,
+    binary?: boolean,
+  ): Promise<string | Uint8Array> {
     assert(this.conn, "Not connected to MPD");
     if (this.idling) {
       //console.log("Idling, sending noidle")
@@ -217,35 +220,45 @@ export class MPD {
     });
   }
 
-
   /**
    * Execute command list call and return all values in one object
    * @returns Command list responses objects combined into single object
    */
-  async commandList(...commands: string[]): Promise<Record<string, string>>{
+  async commandList(...commands: string[]): Promise<Record<string, string>> {
     const msgList = ["command_list_begin", ...commands, "command_list_end"];
-    const msg = msgList.join("\n")
-    const response = await this.sendMessage(msg)
-    return parseUnknown(response)
+    const msg = msgList.join("\n");
+    const response = await this.sendMessage(msg);
+    return parseUnknown(response);
   }
   /**
    * Execute command list ok call and return each command response value in own object
    * @returns Command list response objects in a list
    */
-  async commandListOK(...commands: string[]): Promise<Record<string, string>[]>{
+  async commandListOK(
+    ...commands: string[]
+  ): Promise<Record<string, string>[]> {
     const msgList = ["command_list_ok_begin", ...commands, "command_list_end"];
-    const msg = msgList.join("\n")
-    const response = await this.sendMessage(msg)
-    const groups = response.split("list_OK").map(parseUnknown)
+    const msg = msgList.join("\n");
+    const response = await this.sendMessage(msg);
+    const groups = response.split("list_OK").map(parseUnknown);
     const last = groups.at(-1);
     //If last grou is empty, remove it. Happens on successful calls
-    if(last && Object.keys(last).length === 0) {
-      groups.pop()
+    if (last && Object.keys(last).length === 0) {
+      groups.pop();
     }
-    return groups
+    return groups;
   }
 
-  ping(){
-    return this.sendMessage("ping")
+  async playlist() {
+    const res = await this.sendMessage("playlist");
+    return Object.values(parseUnknown(res));
+  }
+  async playlistinfo() {
+    const res = await this.sendMessage("playlistinfo");
+    return parseUnknownList(res);
+  }
+
+  ping() {
+    return this.sendMessage("ping");
   }
 }

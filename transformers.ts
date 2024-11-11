@@ -67,15 +67,14 @@ export const parse = <T extends Record<string, any>>(
 export const parseUnknown = (input: string): Record<string, string> => {
   return input
     .split("\n")
-    .reduce((acc, line) => {      
-      if(line.includes("ACK")){
-        return {...acc, ACK_ERROR: line }
-      }
-      else if(line.includes(":")){
+    .reduce((acc, line) => {
+      if (line.includes("ACK")) {
+        return { ...acc, ACK_ERROR: line };
+      } else if (line.includes(":")) {
         const [key, value] = line.split(": ");
         return { ...acc, [key]: value };
       }
-      return {...acc}
+      return { ...acc };
     }, {} as Record<string, string>);
 };
 

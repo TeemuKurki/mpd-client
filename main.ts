@@ -1,5 +1,4 @@
 import { MPD } from "./mpd.ts";
-import { parseUnknownList } from "./transformers.ts";
 import { connect, createFilter } from "./utils.ts";
 import type { Filter, TCPConnection } from "./utils.ts";
 
@@ -49,12 +48,20 @@ export class MPDClient {
   }
 
   async queue(): Promise<Record<string, string>[]> {
-    const playlistInfo = await this.mpd.sendMessage("playlistinfo");
-    return parseUnknownList(playlistInfo);
+    return this.mpd.playlistinfo();
   }
 
   async clearQueue(): Promise<void> {
     await this.mpd.sendMessage("clear");
+  }
+  async clearRestOfQueue() {
+    const currentSong = await this.currentSong();
+    const currentPosition = currentSong?.Pos;
+    if (currentPosition) {
+      const playlist = await this.mpd.playlist();
+      const delStart = Number.parseInt(currentPosition) + 1;
+      this.mpd.sendMessage(`delete ${delStart}:${playlist.length}`);
+    }
   }
 
   /**
@@ -84,6 +91,25 @@ export class MPDClient {
     await this.mpd.sendMessage(`findadd ${filter}`);
   }
 
+  async listArtists() {
+    const res = await this.mpd.list({
+      type: "albumartist",
+    });
+    return res.map((artist) => artist.AlbumArtist).filter(Boolean);
+  }
+  async listAlbums(artist?: string) {
+    const filter: Filter | undefined = artist ? {
+      tag: "albumartist",
+      value: artist
+    } : undefined
+    const res = await this.mpd.list({
+      type: "album",
+      group: "albumartist",
+      filter: filter
+    });
+    return res;
+  }
+
   async info() {
     return {
       currentSong: await this.mpd.currentSong(),
@@ -92,8 +118,8 @@ export class MPDClient {
     };
   }
 
-  currentSong(): Promise<Record<string, string>>{
-    return this.mpd.currentSong()
+  currentSong(): Promise<Record<string, string>> {
+    return this.mpd.currentSong();
   }
 
   disconnect(): void {
