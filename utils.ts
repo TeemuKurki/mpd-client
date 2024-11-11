@@ -2,7 +2,7 @@ import type { Tag } from "./mpd.ts";
 import {concat, endsWith, includesNeedle} from "@std/bytes"
 
 const MSG_END_BIN = [
-  new TextEncoder().encode("\nOK\n"),
+  new TextEncoder().encode("OK\n"),
   new TextEncoder().encode("ACK ")
 ]
 
