@@ -1,19 +1,14 @@
 {
-  "name": "@teemukurki/mpd-deno",
-  "version": "0.0.1",
   "license": "MIT",
   "tasks": {
-    "dev": "deno run --allow-env --allow-net --allow-read --watch main.ts",
+    "dev": "deno run --allow-env --allow-net --allow-read --watch demo/main.ts",
     "test": "deno test -A --watch",
     "coverage": "deno test -A --coverage && deno coverage --html"
   },
-  "exports": {
-    ".": "./main.ts"
-  },
   "imports": {
-    "@std/assert": "jsr:@std/assert@1",
-    "@std/bytes": "jsr:@std/bytes@^1.0.3"
+    "@std/assert": "jsr:@std/assert@1"
   },
+  "workspace": ["./packages/MPD", "./packages/clients/deno"],
   "compilerOptions": {
     "lib": [
       "deno.worker"

@@ -1,5 +1,5 @@
 import { MPD } from "./mpd.ts";
-import { connect, createFilter } from "./utils.ts";
+import {  createFilter } from "./utils.ts";
 import type { Filter, TCPConnection } from "./utils.ts";
 
 const getPort = (port?: number | string): number | null => {
@@ -21,12 +21,12 @@ export class MPDClient {
   //TODO: implement timeout and host/port from environment variables. https://mpd.readthedocs.io/en/latest/client.html#environment-variables
   //TODO: Refactor host and port to be passed in as an object
   static async connect(
-    hostname?: string,
-    port?: number,
     connectFn: (
       hostname: string,
       port: number,
-    ) => Promise<TCPConnection> = connect,
+    ) => Promise<TCPConnection>,
+    hostname?: string,
+    port?: number,
   ): Promise<MPDClient> {
     const _host = getHost(hostname || Deno.env.get("MPD_HOST"));
     const _port = getPort(port || Deno.env.get("MPD_PORT"));
@@ -34,7 +34,8 @@ export class MPDClient {
       throw new Error("No host or port provided");
     }
     const connection = await connectFn(_host, _port);
-    return new MPDClient(new MPD(connection, _host, _port));
+    const idleConnection = await connectFn(_host, _port);
+    return new MPDClient(new MPD(connection, idleConnection));
   }
 
   /**

@@ -90,14 +90,12 @@ const isGroupListOptions = (
 };
 
 export class MPD {
-  conn: TCPConnection | null = null;
+  conn: TCPConnection;
+  #idleConnection: TCPConnection;
   idling: boolean = false;
-  #host: string;
-  #port: number;
-  constructor(connection: TCPConnection, host: string, port: number) {
+  constructor(connection: TCPConnection, idleConnection: TCPConnection) {
     this.conn = connection;
-    this.#host = host;
-    this.#port = port;
+    this.#idleConnection = idleConnection 
   }
 
   /**
@@ -116,12 +114,14 @@ export class MPD {
     if (this.idling) {
       //console.log("Idling, sending noidle")
       const noidleBuffer = new Uint8Array(1);
-      await this.conn.write(new TextEncoder().encode("noidle\n"));
-      await this.conn.read(noidleBuffer);
+      await this.#idleConnection.write(new TextEncoder().encode("noidle\n"));
+      await this.#idleConnection.read(noidleBuffer);
     }
     await this.conn.write(new TextEncoder().encode(message + "\n"));
     return this.conn.readAll(binary);
   }
+
+  
 
   async currentSong(): Promise<Record<string, string>> {
     assert(this.conn, "Not connected to MPD");
@@ -190,34 +190,12 @@ export class MPD {
     return parseUnknownList(result, options.type);
   }
 
-  idle(subsystems: string): Promise<string> {
-    return new Promise((res, rej) => {
-      let worker: Worker;
-      if (!this.idling) {
-        worker = new Worker(
-          new URL("./idleWorker.ts", import.meta.url).href,
-          {
-            type: "module",
-          },
-        );
-        worker.postMessage({
-          subsystems: subsystems,
-          host: this.#host,
-          port: this.#port,
-        });
-        worker.onmessage = (e) => {
-          this.idling = false;
-          res(e.data);
-        };
-        worker.onerror = (e) => {
-          this.idling = false;
-          rej(e.error);
-        };
-        this.idling = true;
-      } else {
-        rej(new Error("Already idling"));
-      }
-    });
+  async idle(subsystems: string): Promise<string> {
+    if(!this.idling) {
+      await this.#idleConnection.write(new TextEncoder().encode(`idle ${subsystems}\n`));
+      return await this.#idleConnection.readAll()
+    }
+    throw new Error("Already idling")
   }
 
   /**

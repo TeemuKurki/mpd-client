@@ -5,7 +5,7 @@ import {
   type Spy,
   spy,
 } from "jsr:@std/testing/mock";
-import { MPDClient } from "./main.ts";
+import { MPDClient } from "../../packages/MPD/main.ts";
 import type { TCPConnection } from "./utils.ts";
 import {
   assert,
@@ -15,12 +15,14 @@ import {
   assertObjectMatch,
   assertRejects,
 } from "@std/assert";
-import { ACKError } from "./mpd.ts";
+import { ACKError } from "../../packages/MPD/mpd.ts";
 
 let closeSpy = spy(() => {});
 let readSpy = spy(async (buffer: Uint8Array) => 0);
 let readAllSpy = spy(async () => "");
 let writeSpy = spy(async (data: Uint8Array) => 0);
+
+
 const mockConnection = async (): Promise<TCPConnection> => {
   return {
     close: closeSpy,
