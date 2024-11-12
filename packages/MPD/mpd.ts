@@ -1,4 +1,3 @@
-import { assert } from "@std/assert";
 import { createFilter, type Filter, type TCPConnection } from "./utils.ts";
 import {
   parse,
