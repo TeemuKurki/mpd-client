@@ -1,16 +1,6 @@
 import { MPD } from "./mpd.ts";
-import { createFilter } from "./utils.ts";
+import { createFilter, getHost, getPort } from "./utils.ts";
 import type { Filter, TCPConnection } from "./utils.ts";
-
-const getPort = (port?: number | string): number | null => {
-  if (typeof port === "string") {
-    return parseInt(port, 10);
-  }
-  return port || null;
-};
-const getHost = (host?: string): string | null => {
-  return host || null;
-};
 
 export class MPDClient {
   mpd: MPD;
@@ -28,8 +18,8 @@ export class MPDClient {
     hostname?: string,
     port?: number,
   ): Promise<MPDClient> {
-    const _host = getHost(hostname || Deno.env.get("MPD_HOST"));
-    const _port = getPort(port || Deno.env.get("MPD_PORT"));
+    const _host = getHost(hostname);
+    const _port = getPort(port);
     if (!_host || !_port) {
       throw new Error("No host or port provided");
     }
