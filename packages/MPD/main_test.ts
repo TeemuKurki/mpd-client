@@ -22,7 +22,6 @@ let readSpy = spy(async (buffer: Uint8Array) => 0);
 let readAllSpy = spy(async () => "");
 let writeSpy = spy(async (data: Uint8Array) => 0);
 
-
 const mockConnection = async (): Promise<TCPConnection> => {
   return {
     close: closeSpy,

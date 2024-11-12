@@ -14,7 +14,6 @@ export interface TCPConnection {
 
 type Falsy = false | undefined;
 
-
 type FilterCompareMethod =
   | "=="
   | "!="

@@ -95,7 +95,7 @@ export class MPD {
   idling: boolean = false;
   constructor(connection: TCPConnection, idleConnection: TCPConnection) {
     this.#conn = connection;
-    this.#idleConnection = idleConnection 
+    this.#idleConnection = idleConnection;
   }
 
   /**
@@ -119,8 +119,6 @@ export class MPD {
     await this.#conn.write(new TextEncoder().encode(message + "\n"));
     return this.#conn.readAll(binary);
   }
-
-  
 
   async currentSong(): Promise<Record<string, string>> {
     const result = await this.sendMessage("currentsong");
@@ -189,11 +187,13 @@ export class MPD {
   }
 
   async idle(subsystems: string): Promise<string> {
-    if(!this.idling) {
-      await this.#idleConnection.write(new TextEncoder().encode(`idle ${subsystems}\n`));
-      return await this.#idleConnection.readAll()
+    if (!this.idling) {
+      await this.#idleConnection.write(
+        new TextEncoder().encode(`idle ${subsystems}\n`),
+      );
+      return await this.#idleConnection.readAll();
     }
-    throw new Error("Already idling")
+    throw new Error("Already idling");
   }
 
   /**
@@ -238,8 +238,8 @@ export class MPD {
     return this.sendMessage("ping");
   }
 
-  disconnect(){
+  disconnect() {
     this.#conn.close();
-    this.#idleConnection.close()
+    this.#idleConnection.close();
   }
 }

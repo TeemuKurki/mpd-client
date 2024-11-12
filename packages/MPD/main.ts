@@ -1,5 +1,5 @@
 import { MPD } from "./mpd.ts";
-import {  createFilter } from "./utils.ts";
+import { createFilter } from "./utils.ts";
 import type { Filter, TCPConnection } from "./utils.ts";
 
 const getPort = (port?: number | string): number | null => {
@@ -99,14 +99,16 @@ export class MPDClient {
     return res.map((artist) => artist.AlbumArtist).filter(Boolean);
   }
   async listAlbums(artist?: string) {
-    const filter: Filter | undefined = artist ? {
-      tag: "albumartist",
-      value: artist
-    } : undefined
+    const filter: Filter | undefined = artist
+      ? {
+        tag: "albumartist",
+        value: artist,
+      }
+      : undefined;
     const res = await this.mpd.list({
       type: "album",
       group: "albumartist",
-      filter: filter
+      filter: filter,
     });
     return res;
   }
@@ -124,6 +126,6 @@ export class MPDClient {
   }
 
   disconnect(): void {
-      this.mpd.disconnect();
+    this.mpd.disconnect();
   }
 }
