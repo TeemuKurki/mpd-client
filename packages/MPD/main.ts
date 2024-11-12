@@ -124,9 +124,6 @@ export class MPDClient {
   }
 
   disconnect(): void {
-    if (this.mpd.conn) {
-      this.mpd.conn.close();
-      this.mpd.conn = null;
-    }
+      this.mpd.disconnect();
   }
 }

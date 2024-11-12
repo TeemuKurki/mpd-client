@@ -90,11 +90,11 @@ const isGroupListOptions = (
 };
 
 export class MPD {
-  conn: TCPConnection;
+  #conn: TCPConnection;
   #idleConnection: TCPConnection;
   idling: boolean = false;
   constructor(connection: TCPConnection, idleConnection: TCPConnection) {
-    this.conn = connection;
+    this.#conn = connection;
     this.#idleConnection = idleConnection 
   }
 
@@ -110,21 +110,19 @@ export class MPD {
     message: string,
     binary?: boolean,
   ): Promise<string | Uint8Array> {
-    assert(this.conn, "Not connected to MPD");
     if (this.idling) {
       //console.log("Idling, sending noidle")
       const noidleBuffer = new Uint8Array(1);
       await this.#idleConnection.write(new TextEncoder().encode("noidle\n"));
       await this.#idleConnection.read(noidleBuffer);
     }
-    await this.conn.write(new TextEncoder().encode(message + "\n"));
-    return this.conn.readAll(binary);
+    await this.#conn.write(new TextEncoder().encode(message + "\n"));
+    return this.#conn.readAll(binary);
   }
 
   
 
   async currentSong(): Promise<Record<string, string>> {
-    assert(this.conn, "Not connected to MPD");
     const result = await this.sendMessage("currentsong");
     return parseUnknown(result);
   }
@@ -238,5 +236,10 @@ export class MPD {
 
   ping() {
     return this.sendMessage("ping");
+  }
+
+  disconnect(){
+    this.#conn.close();
+    this.#idleConnection.close()
   }
 }
