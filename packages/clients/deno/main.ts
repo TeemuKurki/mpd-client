@@ -1,4 +1,5 @@
 import { concat, endsWith, includesNeedle } from "@std/bytes";
+import { assertExists } from "@std/assert";
 
 type Falsy = false | undefined;
 
@@ -19,30 +20,26 @@ const MSG_END_BIN = [
   new TextEncoder().encode("ACK "),
 ];
 
-const getResponse = async (
-  reader: ReadableStreamDefaultReader<Uint8Array>,
-) => {
+const getResponse = async (conn: Deno.TcpConn) => {
   let data = new Uint8Array();
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      data = concat([data, value]);
-      const OK_RESPONSE = endsWith(value, MSG_END_BIN[0]);
-      if (OK_RESPONSE) {
-        break;
-      }
-      const ACK_RESPONSE = includesNeedle(value, MSG_END_BIN[1]);
-      if (ACK_RESPONSE) {
-        break;
-      }
+  const buf = new Uint8Array(128);
+  while (true) {
+    const bytesRead = await conn.read(buf);
+    if (bytesRead === null) {
+      throw new Error("Connection closed by server");
     }
-    return data;
-  } catch (e: any) {
-    throw new Error("Error reading stream", e);
-  } finally {
-    reader.releaseLock();
+    const content = buf.subarray(0, bytesRead);
+    data = concat([data, content]);
+    const OK_RESPONSE = endsWith(content, MSG_END_BIN[0]);
+    if (OK_RESPONSE) {
+      break;
+    }
+    const ACK_RESPONSE = includesNeedle(content, MSG_END_BIN[1]);
+    if (ACK_RESPONSE) {
+      break;
+    }
   }
+  return data;
 };
 
 export class TCPClient implements TCPConnection {
@@ -50,7 +47,6 @@ export class TCPClient implements TCPConnection {
   private constructor(connection: Deno.TcpConn) {
     this.#connection = connection;
   }
-
   static async connect(hostname: string, port: number) {
     const conn = await Deno.connect({
       hostname,
@@ -59,23 +55,27 @@ export class TCPClient implements TCPConnection {
     return new TCPClient(conn);
   }
 
+  close(): void {
+    console.debug("Close a connection");
+    this.#connection.close();
+  }
+
   read(buffer: Uint8Array): Promise<number | null> {
+    assertExists(this.#connection);
     return this.#connection.read(buffer);
   }
   async readAll(): Promise<string>;
   async readAll(getInBinary: true): Promise<Uint8Array>;
   async readAll(getInBinary?: boolean): Promise<string | Uint8Array> {
-    const reader = this.#connection.readable.getReader();
-    const data = await getResponse(reader);
+    assertExists(this.#connection);
+    const data = await getResponse(this.#connection);
     if (getInBinary) {
       return data;
     }
     return new TextDecoder().decode(data);
   }
   write(data: Uint8Array): Promise<number> {
+    assertExists(this.#connection);
     return this.#connection.write(data);
-  }
-  close(): void {
-    this.#connection.close();
   }
 }
