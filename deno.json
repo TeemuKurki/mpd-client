@@ -8,10 +8,5 @@
   "imports": {
     "@std/assert": "jsr:@std/assert@1"
   },
-  "workspace": ["./packages/MPD", "./packages/clients/deno"],
-  "compilerOptions": {
-    "lib": [
-      "deno.worker"
-    ]
-  }
+  "workspace": ["./packages/MPD", "./packages/clients/deno"]
 }

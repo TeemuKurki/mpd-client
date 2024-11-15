@@ -11,10 +11,7 @@ export class MPDClient {
   //TODO: implement timeout and host/port from environment variables. https://mpd.readthedocs.io/en/latest/client.html#environment-variables
   //TODO: Refactor host and port to be passed in as an object
   static async connect(
-    connectFn: (
-      hostname: string,
-      port: number,
-    ) => Promise<TCPConnection>,
+    connectFn: (hostname: string, port: number) => Promise<TCPConnection>,
     hostname?: string,
     port?: number,
   ): Promise<MPDClient> {
@@ -65,7 +62,6 @@ export class MPDClient {
     if (params.uri) {
       await this.mpd.sendMessage(`add "${params.uri}"`);
     } else if (params.filter) {
-      console.log(`findadd "${createFilter(params.filter)}"`);
       await this.mpd.sendMessage(`findadd ${createFilter(params.filter)}`);
     }
   }
@@ -98,6 +94,17 @@ export class MPDClient {
     const res = await this.mpd.list({
       type: "album",
       group: "albumartist",
+      filter: filter,
+    });
+    return res;
+  }
+
+  async getTracks(album: string) {
+    const filter: Filter = {
+      tag: "album",
+      value: album,
+    };
+    const res = await this.mpd.find({
       filter: filter,
     });
     return res;
