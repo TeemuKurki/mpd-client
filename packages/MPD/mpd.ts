@@ -1,13 +1,6 @@
-import { createFilter, type Filter, type TCPConnection } from "./utils.ts";
-import {
-  parse,
-  parseUnknown,
-  parseUnknownGroup,
-  parseUnknownList,
-  StatsTransform,
-  StatusTransform,
-} from "./transformers.ts";
-import type { ResolvedTransformer } from "./transformers.ts";
+// deno-lint-ignore-file require-await
+import { createFilter, type TCPConnection } from "./utils.ts";
+import type { AnyFilter, BinaryResponse, MPDProtocol, Tag } from "./types.ts";
 
 export class ACKError extends Error {
   constructor(message: string) {
@@ -15,46 +8,6 @@ export class ACKError extends Error {
     this.name = "ACKError";
   }
 }
-
-/**
- * See meanings of each tags
- * {@link https://mpd.readthedocs.io/en/latest/protocol.html#tags}
- */
-export type Tag =
-  | "artist"
-  | "artistsort"
-  | "album"
-  | "albumsort"
-  | "albumartist"
-  | "albumartistsort"
-  | "title"
-  | "titlesort"
-  | "track"
-  | "name"
-  | "genre"
-  | "mood"
-  | "date"
-  | "composer"
-  | "composersort"
-  | "performer"
-  | "conductor"
-  | "work"
-  | "ensemble"
-  | "movement"
-  | "movementnumber"
-  | "showmovement"
-  | "location"
-  | "grouping"
-  | "comment"
-  | "disc"
-  | "label"
-  | "musicbrainz_artistid"
-  | "musicbrainz_albumid"
-  | "musicbrainz_albumartistid"
-  | "musicbrainz_trackid"
-  | "musicbrainz_releasegroupid"
-  | "musicbrainz_releasetrackid"
-  | "musicbrainz_workid";
 
 type ListOptions = {
   /**
@@ -64,22 +17,33 @@ type ListOptions = {
   /**
    * Filter to apply to the list.
    */
-  filter?: Filter | Filter[] | string;
+  filter?: AnyFilter;
 };
 
 type ListGroupOptions = {
   /**
-   * Type of list to retrieve.
-   */
-  type: Tag;
-  /**
    * Filter to apply to the list.
    */
-  filter?: Filter | Filter[] | string;
+  filter?: AnyFilter;
   /**
    * Grouping to apply to the list.
    */
-  group: Tag;
+  group?: Tag;
+};
+
+const rangeToCmd = (range: [start: number, end: number] | number): string => {
+  if (Array.isArray(range)) {
+    return range.join(":");
+  }
+  return `${range}`;
+};
+
+const relativeToCmd = (
+  position: number | undefined,
+  relative: "+" | "-" | undefined,
+): string => {
+  const pos = position || position === 0 ? `${position}` : "";
+  return pos && relative ? `${relative}${pos}` : `${pos}`;
 };
 
 const isGroupListOptions = (
@@ -88,7 +52,14 @@ const isGroupListOptions = (
   return "group" in options;
 };
 
-export class MPD {
+const handleError = (input: string): string => {
+  if (input.startsWith("ACK")) {
+    throw new ACKError(input);
+  }
+  return input;
+};
+
+export class MPD implements MPDProtocol {
   #conn: TCPConnection;
   #idleConnection: TCPConnection;
   idling: boolean = false;
@@ -100,15 +71,10 @@ export class MPD {
   /**
    * Send message to MPD and returns response
    * @param message Message to send
-   * @param binary If true, data in Uint8Array format. Else return as string
    */
-  async sendMessage(message: string): Promise<string>;
-  async sendMessage(message: string, binary: false): Promise<string>;
-  async sendMessage(message: string, binary: true): Promise<Uint8Array>;
-  async sendMessage(
+  async sendCommand(
     message: string,
-    binary?: boolean,
-  ): Promise<string | Uint8Array> {
+  ): Promise<string> {
     if (this.idling) {
       //console.log("Idling, sending noidle")
       const noidleBuffer = new Uint8Array(1);
@@ -116,27 +82,522 @@ export class MPD {
       await this.#idleConnection.read(noidleBuffer);
     }
     await this.#conn.write(new TextEncoder().encode(message + "\n"));
-    return this.#conn.readAll(binary);
+    return this.#conn.readAll();
   }
 
-  async currentSong(): Promise<Record<string, string>> {
-    const result = await this.sendMessage("currentsong");
-    return parseUnknown(result);
+  async sendCommandBinary(
+    message: string,
+  ): Promise<BinaryResponse> {
+    if (this.idling) {
+      const noidleBuffer = new Uint8Array(1);
+      await this.#idleConnection.write(new TextEncoder().encode("noidle\n"));
+      await this.#idleConnection.read(noidleBuffer);
+    }
+    await this.#conn.write(new TextEncoder().encode(message + "\n"));
+    const binary = await this.#conn.readAll(true);
+    throw new Error("Method not implemented.");
+    return {
+      meta: "TODO: Implement",
+      binary: binary,
+    };
   }
 
-  async status(): Promise<ResolvedTransformer<typeof StatusTransform>> {
-    const result = await this.sendMessage("status");
-    if (result.startsWith("ACK")) {
-      throw new ACKError(result);
-    }
-    return parse(result, StatusTransform);
+  async clearError(): Promise<void> {
+    this.sendCommand("clearerror");
   }
-  async stats(): Promise<ResolvedTransformer<typeof StatsTransform>> {
-    const result = await this.sendMessage("stats");
-    if (result.startsWith("ACK")) {
-      throw new Error(result);
+  async consume(state: 1 | 0): Promise<void> {
+    this.sendCommand(`consume ${state}`);
+  }
+  async crossfade(seconds: number): Promise<string> {
+    return this.sendCommand(`crossfade ${seconds}`);
+  }
+  async mixrampdb(deciBels: number): Promise<string> {
+    return this.sendCommand(`mixrampdb ${deciBels}`);
+  }
+  async mixrampdelay(seconds: number): Promise<string> {
+    return this.sendCommand(`mixrampdelay ${seconds}`);
+  }
+  async random(state: 1 | 0): Promise<void> {
+    this.sendCommand(`random ${state}`);
+  }
+  async repeat(state: 1 | 0): Promise<void> {
+    this.sendCommand(`repeat ${state}`);
+  }
+  async setVolume(volume: number): Promise<void> {
+    this.sendCommand(`setvol ${volume}`);
+  }
+  async getVolume(): Promise<string> {
+    return this.sendCommand(`getvol`);
+  }
+  async single(state: 1 | 0 | "oneshot"): Promise<void> {
+    this.sendCommand(`single ${state}`);
+  }
+  async replay_gain_mode(
+    mode: "off" | "track" | "album" | "auto",
+  ): Promise<void> {
+    this.sendCommand(`replay_gain_mode ${mode}`);
+  }
+  async replay_gain_status(): Promise<string> {
+    return this.sendCommand(`replay_gain_status`);
+  }
+  async next(): Promise<void> {
+    this.sendCommand(`next`);
+  }
+  async pause(state?: 1 | 0): Promise<void> {
+    this.sendCommand(`pause ${state}`);
+  }
+  async play(SONGPOS: number): Promise<void> {
+    this.sendCommand(`play ${SONGPOS}`);
+  }
+  async playId(SONGID: string): Promise<void> {
+    this.sendCommand(`playid ${SONGID}`);
+  }
+  async previous(): Promise<void> {
+    this.sendCommand(`previous`);
+  }
+  async seek(SONGPOS: number, TIME: number): Promise<void> {
+    this.sendCommand(`seek ${SONGPOS} ${TIME}`);
+  }
+  async seekId(SONGID: string, TIME: number): Promise<void> {
+    this.sendCommand(`seekid ${SONGID} ${TIME}`);
+  }
+  async seekCur(TIME: number, relative?: "+" | "-"): Promise<void> {
+    this.sendCommand(`seekcur ${relative || ""}${TIME}`);
+  }
+  async stop(): Promise<void> {
+    this.sendCommand(`spot`);
+  }
+  async add(uri: string): Promise<void> {
+    this.sendCommand(`add ${uri}`);
+  }
+  async addId(
+    uri: string,
+    position?: number,
+    relative?: "+" | "-",
+  ): Promise<string> {
+    const pos = position || position === 0 ? `${position}` : "";
+    const time = pos && relative ? `${relative}${pos}` : `${pos}`;
+    return this.sendCommand(`addid ${uri} ${time}`);
+  }
+  async clear(): Promise<void> {
+    this.sendCommand(`clear`);
+  }
+  async delete(position: number | [start: number, end: number]): Promise<void> {
+    this.sendCommand(`delete ${rangeToCmd(position)}`);
+  }
+  async deleteId(songid: number): Promise<void> {
+    this.sendCommand(`delete ${songid}`);
+  }
+  async move(
+    from: number | [start: number, end: number],
+    to: number,
+    relative?: "+" | "-",
+  ): Promise<void> {
+    this.sendCommand(`move ${rangeToCmd(from)} ${relativeToCmd(to, relative)}`);
+  }
+  async playlistFind(filter: AnyFilter): Promise<string> {
+    return this.sendCommand(`playlistfind ${createFilter(filter)}`);
+  }
+  async playlistId(songid?: string): Promise<string> {
+    return this.sendCommand(`playlistfind ${songid}`);
+  }
+  async playlistInfo(
+    songpos?: number | [start: number, end: number],
+  ): Promise<string> {
+    if (songpos) {
+      return this.sendCommand(`playlistinfo ${rangeToCmd(songpos)}`);
     }
-    return parse(result, StatsTransform);
+    return this.sendCommand(`playlistinfo`);
+  }
+  async playlistSearch(filter: AnyFilter): Promise<string> {
+    return this.sendCommand(`playlistfilter ${createFilter(filter)}`);
+  }
+  async playlistChanges(
+    version: string,
+    range?: [start: number, end: number],
+  ): Promise<string> {
+    if (range) {
+      return this.sendCommand(`plchanges ${version} ${rangeToCmd(range)}`);
+    }
+    return this.sendCommand(`plchanges ${version}`);
+  }
+  async playlistChangePosId(
+    version: string,
+    range?: [start: number, end: number],
+  ): Promise<string> {
+    if (range) {
+      return this.sendCommand(`plchangesposid ${version} ${rangeToCmd(range)}`);
+    }
+    return this.sendCommand(`plchangesposid ${version}`);
+  }
+  async prio(
+    priority: number,
+    ...range: [start: number, end: number][]
+  ): Promise<void> {
+    this.sendCommand(`prio ${priority} ${range.map(rangeToCmd).join(" ")}`);
+  }
+  async prioId(priority: number, ...id: number[]): Promise<void> {
+    this.sendCommand(`prioid ${priority} ${id.join(" ")}`);
+  }
+  async rangeId(
+    id: number,
+    range: { start?: number; end?: number },
+  ): Promise<void> {
+    this.sendCommand(
+      `rangeid ${id} ${(range.start || "")}:${(range.end || "")}`,
+    );
+  }
+  async shuffle(range?: [start: number, end: number]): Promise<void> {
+    if (range) {
+      this.sendCommand(`shuffle ${rangeToCmd(range)}`);
+    } else {
+      this.sendCommand(`shuffle`);
+    }
+  }
+  async swap(pos1: number, pos2: number): Promise<void> {
+    this.sendCommand(`swap ${pos1} ${pos2}`);
+  }
+  async swapId(pos1: number, pos2: number): Promise<void> {
+    this.sendCommand(`swapid ${pos1} ${pos2}`);
+  }
+  async addTagId(songId: number, tag: string, value: string): Promise<void> {
+    this.sendCommand(`addtagid ${songId} ${tag} ${value}`);
+  }
+  async clearTagId(songId: number, tag?: string): Promise<void> {
+    this.sendCommand(`cleartagid ${songId} ${tag || ""}`);
+  }
+  async listPlaylist(name: string): Promise<string> {
+    return this.sendCommand(`listplaylist ${name}`);
+  }
+  async listPlaylistinfo(name: string): Promise<string> {
+    return this.sendCommand(`listplaylistinfo ${name}`);
+  }
+  async listPlaylists(): Promise<string> {
+    return this.sendCommand(`listplaylists`);
+  }
+  async loadPlaylist(
+    name: string,
+    range?: { start: number; end?: number },
+    position?: number,
+    relative?: "+" | "-",
+  ): Promise<void> {
+    if (range) {
+      this.sendCommand(
+        `load ${name} ${range.start}:${range.end} ${
+          relativeToCmd(position, relative)
+        }`,
+      );
+    } else {
+      this.sendCommand(
+        `load ${name}`,
+      );
+    }
+  }
+  async playlistAdd(
+    name: string,
+    uri: string,
+    position?: number,
+  ): Promise<void> {
+    this.sendCommand(`playlistadd ${name} ${uri} ${position ?? ""}`);
+  }
+  async playlistClear(name: string): Promise<void> {
+    this.sendCommand(`playlistclear ${name}`);
+  }
+  async playlistDelete(
+    name: string,
+    songPos: number | [start: number, end: number],
+  ): Promise<void> {
+    this.sendCommand(`playlistdelete ${name} ${rangeToCmd(songPos)}`);
+  }
+  async playlistMove(name: string, from: number, to: number): Promise<void> {
+    this.sendCommand(`playlistmove ${name} ${from} ${to}`);
+  }
+  async playlistRename(oldName: string, newName: string): Promise<void> {
+    this.sendCommand(`rename ${oldName} ${newName}`);
+  }
+  async playlistRemove(name: string): Promise<void> {
+    this.sendCommand(`rm ${name}`);
+  }
+  async playlistSave(name: string): Promise<void> {
+    this.sendCommand(`save ${name}`);
+  }
+  async albumArt(
+    uri: string,
+    offsets: number,
+  ): Promise<BinaryResponse> {
+    throw new Error("Method not implemented.");
+  }
+  async count(
+    filter: AnyFilter,
+    group?: Tag,
+  ): Promise<string> {
+    if (group) {
+      return this.sendCommand(`count ${createFilter(filter)} group ${group}`);
+    } else {
+      return this.sendCommand(`count ${createFilter(filter)}`);
+    }
+  }
+  async getFingerPrint(uri: string): Promise<string> {
+    return this.sendCommand(`getfingerprint ${uri}`);
+  }
+  async findAdd(
+    filter: AnyFilter,
+    options?: {
+      sort?: { tag: Tag; descending: boolean };
+      window?: [start: number, end: number];
+      position?: number;
+    },
+  ): Promise<string> {
+    if (options) {
+      const order = options.sort?.descending ? "-" : "";
+      const sort = options.sort ? `sort ${order}${options.sort}` : "";
+      const window = options.window
+        ? `window ${rangeToCmd(options.window)}`
+        : "";
+      const position = options.position ? `position ${options.position}` : "";
+      return this.sendCommand(
+        `findadd ${createFilter(filter)} ${sort} ${window} ${position}`,
+      );
+    }
+    return this.sendCommand(`findadd ${createFilter(filter)}`);
+  }
+  async listFiles(uri: string): Promise<string> {
+    return this.sendCommand(`listfiles ${uri}`);
+  }
+  async readComments(uri: string): Promise<string> {
+    return this.sendCommand(`readcomments ${uri}`);
+  }
+  readPicture(
+    uri: string,
+    offset: number,
+  ): Promise<BinaryResponse> {
+    throw new Error("Method not implemented.");
+  }
+  async search(
+    filter: AnyFilter,
+    options?: {
+      sort?: { tag: Tag; descending?: boolean };
+      window?: [start: number, end: number];
+    },
+  ): Promise<string> {
+    if (options) {
+      const order = options.sort?.descending ? "-" : "";
+      const sort = options.sort ? `sort ${order}${options.sort}` : "";
+      const window = options.window
+        ? `window ${rangeToCmd(options.window)}`
+        : "";
+      return this.sendCommand(
+        `search ${createFilter(filter)} ${sort} ${window}`,
+      );
+    }
+    return this.sendCommand(
+      `search ${createFilter(filter)}`,
+    );
+  }
+  searchAdd(
+    filter: AnyFilter,
+    options?: {
+      sort?: { tag: Tag; descending?: boolean };
+      window?: [start: number, end: number];
+      position?: number;
+    },
+  ): Promise<string> {
+    if (options) {
+      const order = options.sort?.descending ? "-" : "";
+      const sort = options.sort ? `sort ${order}${options.sort}` : "";
+      const window = options.window
+        ? `window ${rangeToCmd(options.window)}`
+        : "";
+      const position = typeof options.position === "number"
+        ? options.position.toString(10)
+        : "";
+      return this.sendCommand(
+        `searchadd ${
+          createFilter(filter)
+        } ${sort} ${window} ${options} ${position}`,
+      );
+    }
+    return this.sendCommand(
+      `searchadd ${createFilter(filter)}`,
+    );
+  }
+  searchAddPlaylist(
+    name: string,
+    filter: AnyFilter,
+    options?: {
+      sort?: { tag: Tag; descending?: boolean };
+      window?: [start: number, end: number];
+      position?: number;
+    },
+  ): Promise<string> {
+    if (options) {
+      const order = options.sort?.descending ? "-" : "";
+      const sort = options.sort ? `sort ${order}${options.sort}` : "";
+      const window = options.window
+        ? `window ${rangeToCmd(options.window)}`
+        : "";
+      const position = options.position ? `position ${options.position}` : "";
+      return this.sendCommand(
+        `searchaddpl ${name} ${
+          createFilter(filter)
+        } ${sort} ${window} ${position}`,
+      );
+    }
+    return this.sendCommand(
+      `searchaddpl ${name} ${createFilter(filter)}`,
+    );
+  }
+  async update(path?: string): Promise<string> {
+    return this.sendCommand(`update ${path || ""}`);
+  }
+  async rescan(path?: string): Promise<string> {
+    return this.sendCommand(`rescan ${path || ""}`);
+  }
+  async mount(path: string, uri: string): Promise<void> {
+    this.sendCommand(`mount ${path} ${uri}`);
+  }
+  async unmount(path: string): Promise<void> {
+    this.sendCommand(`mount ${path}`);
+  }
+  async listMounts(): Promise<string> {
+    return this.sendCommand(`listmounts`);
+  }
+  async listNeighbors(): Promise<string> {
+    return this.sendCommand(`listneighbors`);
+  }
+  async addSticker(
+    type: string,
+    uri: string,
+    name: string,
+    value: string,
+  ): Promise<void> {
+    this.sendCommand(`sticker set ${type} ${uri} ${name} ${value}`);
+  }
+  async getStickers(
+    type: string,
+    uri: string,
+  ): Promise<string> {
+    return this.sendCommand(`sticker get ${type} ${uri} ${name}`);
+  }
+  async deleteSticker(type: string, uri: string, name?: string): Promise<void> {
+    this.sendCommand(`sticker delete ${type} ${uri} ${name}`);
+  }
+  async findStickers(
+    type: string,
+    uri: string,
+    name: string,
+    value?: string,
+    compare: "=" | "<" | ">" = "=",
+  ): Promise<string> {
+    if (value) {
+      return this.sendCommand(
+        `sticker find ${type} ${uri} ${name} ${compare} ${value}`,
+      );
+    }
+    return this.sendCommand(`sticker find ${type} ${uri} ${name}`);
+  }
+
+  async listStickers(type: string, uri: string): Promise<string> {
+    return this.sendCommand(`sticker list ${type} ${uri}`);
+  }
+
+  async kill(): Promise<void> {
+    this.sendCommand(`kill`);
+  }
+  async password(password: string): Promise<void> {
+    this.sendCommand(`password ${password}`);
+  }
+  async binaryLimit(size: number): Promise<void> {
+    this.sendCommand(`binarylimit ${size}`);
+  }
+  async tagTypes(): Promise<string> {
+    return this.sendCommand(`tagtypes`);
+  }
+  async tagTypesDisable(...tags: string[]): Promise<void> {
+    this.sendCommand(`tagtypes disable ${tags.join(" ")}`);
+  }
+  async tagTypesEnable(...tags: string[]): Promise<void> {
+    this.sendCommand(`tagtypes enable ${tags.join(" ")}`);
+  }
+  async tagTypesClear(): Promise<void> {
+    this.sendCommand(`tagtypes clear`);
+  }
+  async tagTypesAll(): Promise<void> {
+    this.sendCommand(`tagtypes all`);
+  }
+  async partition(name: string): Promise<void> {
+    this.sendCommand(`partition ${name}`);
+  }
+  async listPartitions(): Promise<string> {
+    return this.sendCommand(`listpartitions`);
+  }
+  async newPartition(name: string): Promise<void> {
+    this.sendCommand(`newpartition ${name}`);
+  }
+  async deletePartition(name: string): Promise<void> {
+    this.sendCommand(`delpartition ${name}`);
+  }
+  async moveOutput(outputName: string): Promise<void> {
+    this.sendCommand(`moveoutput ${outputName}`);
+  }
+  async listOutputs(): Promise<string> {
+    return this.sendCommand(`outputs`);
+  }
+  async enableOutput(id: number): Promise<void> {
+    this.sendCommand(`enableoutput ${id}`);
+  }
+  async disableOutput(id: number): Promise<void> {
+    this.sendCommand(`disableoutput ${id}`);
+  }
+  async toggleOutput(id: number): Promise<void> {
+    this.sendCommand(`toggleoutput ${id}`);
+  }
+  async outputSet(id: number, name: string, value: string): Promise<string> {
+    return this.sendCommand(`outputset ${id} ${name} ${value}`);
+  }
+  async config(): Promise<string> {
+    return this.sendCommand(`config`);
+  }
+  async commands(): Promise<string> {
+    return this.sendCommand(`commands`);
+  }
+  async notCommands(): Promise<string> {
+    return this.sendCommand(`notcommands`);
+  }
+  async urlHandlers(): Promise<string> {
+    return this.sendCommand(`urlhandlers`);
+  }
+  async decoders(): Promise<string> {
+    return this.sendCommand(`decoders`);
+  }
+  async subscribe(name: string): Promise<void> {
+    this.sendCommand(`subscribe ${name}`);
+  }
+  async unsubscribe(name: string): Promise<void> {
+    this.sendCommand(`unsubscribe ${name}`);
+  }
+  async channels(): Promise<string> {
+    return this.sendCommand(`channels`);
+  }
+  async readMessages(): Promise<string> {
+    return this.sendCommand(`readmessages`);
+  }
+  async sendMessage(channel: string, text: string): Promise<void> {
+    this.sendCommand(`sendmessage ${channel} ${text}`);
+  }
+
+  async currentSong(): Promise<string> {
+    const result = await this.sendCommand("currentsong");
+    return handleError(result);
+  }
+
+  async status(): Promise<string> {
+    const result = await this.sendCommand("status");
+    return handleError(result);
+  }
+  async stats(): Promise<string> {
+    const result = await this.sendCommand("stats");
+    return handleError(result);
   }
 
   /**
@@ -149,48 +610,47 @@ export class MPD {
    * @param sort Sorts the result by the specified tag. The sort is descending if the tag is prefixed with a minus (‘-‘)
    * @param window window can be used to query only a portion of the real response. The parameter is two zero-based record numbers; a start number and an end number.
    */
-  async find(options: {
-    filter: Filter | Filter[] | string;
-    sort?: Tag;
-    window?: [start: number, end: number];
-  }): Promise<Record<string, string>[]> {
-    let msg = `find ${createFilter(options.filter)}`;
-    if (options.sort) {
+  async find(
+    filter: AnyFilter,
+    options?: {
+      sort?: { tag: Tag; order?: "ASC" | "DEC" };
+      window?: [start: number, end: number];
+    },
+  ): Promise<string> {
+    let msg = `find ${createFilter(filter)}`;
+    if (options?.sort) {
       msg += ` sort ${options.sort}`;
     }
-    if (options.window) {
+    if (options?.window) {
       msg += ` window ${options.window[0]}:${options.window[1]}`;
     }
-    const result = await this.sendMessage(msg);
+    const result = await this.sendCommand(msg);
 
-    return parseUnknownList(result, "file");
+    return handleError(result);
   }
 
   async list(
-    options: ListGroupOptions,
-  ): Promise<{ group: string; values: string[] }[]>;
-  async list(options: ListOptions): Promise<Record<string, string>[]>;
-  async list(
-    options: ListOptions | ListGroupOptions,
-  ): Promise<Record<string, string>[] | { group: string; values: string[] }[]> {
-    let msg = `list ${options.type} ${createFilter(options.filter)}`;
-
-    if (isGroupListOptions(options)) {
-      msg += ` group ${options.group}`;
+    type: Tag,
+    options?: ListGroupOptions,
+  ): Promise<string> {
+    let msg = `list ${type}`;
+    if (options) {
+      msg += ` ${createFilter(options.filter)}`;
+      if (isGroupListOptions(options)) {
+        msg += ` group ${options.group}`;
+      }
     }
-    const result = await this.sendMessage(msg);
-    if (isGroupListOptions(options)) {
-      return parseUnknownGroup(result, options.group);
-    }
-    return parseUnknownList(result, options.type);
+    const result = await this.sendCommand(msg);
+    return handleError(result);
   }
 
-  async idle(subsystems: string): Promise<string> {
+  async idle(...subsystems: string[]): Promise<string> {
     if (!this.idling) {
       await this.#idleConnection.write(
-        new TextEncoder().encode(`idle ${subsystems}\n`),
+        new TextEncoder().encode(`idle ${subsystems.join(" ")}\n`),
       );
-      return await this.#idleConnection.readAll();
+      const result = await this.#idleConnection.readAll();
+      return handleError(result);
     }
     throw new Error("Already idling");
   }
@@ -199,11 +659,11 @@ export class MPD {
    * Execute command list call and return all values in one object
    * @returns Command list responses objects combined into single object
    */
-  async commandList(...commands: string[]): Promise<Record<string, string>> {
+  async commandList(...commands: string[]): Promise<string> {
     const msgList = ["command_list_begin", ...commands, "command_list_end"];
     const msg = msgList.join("\n");
-    const response = await this.sendMessage(msg);
-    return parseUnknown(response);
+    const result = await this.sendCommand(msg);
+    return handleError(result);
   }
   /**
    * Execute command list ok call and return each command response value in own object
@@ -211,33 +671,28 @@ export class MPD {
    */
   async commandListOK(
     ...commands: string[]
-  ): Promise<Record<string, string>[]> {
+  ): Promise<string> {
     const msgList = ["command_list_ok_begin", ...commands, "command_list_end"];
     const msg = msgList.join("\n");
-    const response = await this.sendMessage(msg);
-    const groups = response.split("list_OK").map(parseUnknown);
-    const last = groups.at(-1);
-    //If last grou is empty, remove it. Happens on successful calls
-    if (last && Object.keys(last).length === 0) {
-      groups.pop();
-    }
-    return groups;
+    const result = await this.sendCommand(msg);
+    return handleError(result);
   }
 
-  async playlist() {
-    const res = await this.sendMessage("playlist");
-    return Object.values(parseUnknown(res));
+  async playlist(): Promise<string> {
+    const result = await this.sendCommand("playlist");
+    return handleError(result);
   }
   async playlistinfo() {
-    const res = await this.sendMessage("playlistinfo");
-    return parseUnknownList(res);
+    const result = await this.sendCommand("playlistinfo");
+    return handleError(result);
   }
 
-  ping() {
-    return this.sendMessage("ping");
+  async ping(): Promise<string> {
+    const result = await this.sendCommand("ping");
+    return handleError(result);
   }
 
-  disconnect() {
+  close(): void {
     this.#conn.close();
     this.#idleConnection.close();
   }

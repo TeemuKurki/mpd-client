@@ -1,10 +1,22 @@
 import { MPD } from "./mpd.ts";
+import {
+  parseUnknown,
+  parseUnknownGroup,
+  parseUnknownList,
+} from "./transformers.ts";
+import type {
+  AnyFilter,
+  Filter,
+  MPDClientInterface,
+  MPDProtocol,
+  Tag,
+} from "./types.ts";
 import { createFilter, getHost, getPort } from "./utils.ts";
-import type { Filter, TCPConnection } from "./utils.ts";
+import type { TCPConnection } from "./utils.ts";
 
-export class MPDClient {
-  mpd: MPD;
-  constructor(mpd: MPD) {
+export class MPDClient implements MPDClientInterface {
+  mpd: MPDProtocol;
+  constructor(mpd: MPDProtocol) {
     this.mpd = mpd;
   }
 
@@ -25,30 +37,21 @@ export class MPDClient {
     return new MPDClient(new MPD(connection, idleConnection));
   }
 
-  /**
-   * Pause or resume playback. Pass true to pause playback or false to resume playback. W ithout the parameter, the pause state is toggled.
-   * @param pause Pause if true, unpause if false, otherwise toggle
-   * @returns
-   */
-  async pause(pause?: boolean): Promise<string> {
-    const mes = pause === undefined ? "pause" : `pause ${pause ? 1 : 0}`;
-    return await this.mpd.sendMessage(mes);
-  }
-
   async queue(): Promise<Record<string, string>[]> {
-    return this.mpd.playlistinfo();
+    const response = await this.mpd.playlistInfo();
+    return parseUnknownList(response, "file");
   }
 
   async clearQueue(): Promise<void> {
-    await this.mpd.sendMessage("clear");
+    await this.mpd.clear();
   }
-  async clearRestOfQueue() {
+  async clearRestOfQueue(): Promise<void> {
     const currentSong = await this.currentSong();
     const currentPosition = currentSong?.Pos;
     if (currentPosition) {
-      const playlist = await this.mpd.playlist();
+      const playlist = await this.mpd.playlistInfo();
       const delStart = Number.parseInt(currentPosition) + 1;
-      this.mpd.sendMessage(`delete ${delStart}:${playlist.length}`);
+      await this.mpd.delete([delStart, playlist.length]);
     }
   }
 
@@ -56,73 +59,107 @@ export class MPDClient {
    * Add songs to the queue based on provided filter or uri. If both are provided, uri will be used.
    */
   async addToQueue(params: {
-    filter?: Filter | Filter[] | string;
+    filter?: AnyFilter;
     uri?: string;
   }): Promise<void> {
     if (params.uri) {
-      await this.mpd.sendMessage(`add "${params.uri}"`);
+      await this.mpd.add(params.uri);
     } else if (params.filter) {
-      await this.mpd.sendMessage(`findadd ${createFilter(params.filter)}`);
+      await this.mpd.findAdd(params.filter);
     }
   }
 
   /**
    * Add an album to the queue
    */
-  async addAlbumToQueue(album: string, artist?: string): Promise<void> {
+  async addAlbumToQueue(album: string, artist?: string): Promise<string> {
     const filterParams: Filter[] = [{ tag: "album", value: album }];
     if (artist) {
       filterParams.push({ tag: "artist", value: artist });
     }
     const filter = createFilter(filterParams);
-    await this.mpd.sendMessage(`findadd ${filter}`);
+    return await this.mpd.findAdd(filter);
   }
 
-  async listArtists() {
-    const res = await this.mpd.list({
-      type: "albumartist",
-    });
+  async listArtists(): Promise<string[]> {
+    const response = await this.mpd.list("albumartist");
+    const res = parseUnknownList(response, "albumartist");
     return res.map((artist) => artist.AlbumArtist).filter(Boolean);
   }
-  async listAlbums(artist?: string) {
+  async listAlbums(
+    artist?: string,
+  ): Promise<{ group: string; values: string[] }[]> {
     const filter: Filter | undefined = artist
       ? {
         tag: "albumartist",
         value: artist,
       }
       : undefined;
-    const res = await this.mpd.list({
-      type: "album",
+    const result = await this.mpd.list("album", {
       group: "albumartist",
       filter: filter,
     });
-    return res;
+    return parseUnknownGroup(result, "albumartist");
   }
 
-  async getTracks(album: string) {
-    const filter: Filter = {
+  async getTracks(album: string): Promise<Record<string, string>[]> {
+    const res = await this.mpd.find({
       tag: "album",
       value: album,
-    };
-    const res = await this.mpd.find({
-      filter: filter,
     });
-    return res;
+    return parseUnknownList(res);
   }
 
-  async info() {
+  async status(): Promise<Record<string, string>> {
+    const status = await this.mpd.status();
+    return parseUnknown(status);
+  }
+  async stats(): Promise<Record<string, string>> {
+    const status = await this.mpd.stats();
+    return parseUnknown(status);
+  }
+
+  async info(): Promise<{
+    currentSong: Record<string, string>;
+    status: Record<string, string>;
+    stats: Record<string, string>;
+  }> {
     return {
-      currentSong: await this.mpd.currentSong(),
-      status: await this.mpd.status(),
-      stats: await this.mpd.stats(),
+      currentSong: await this.currentSong(),
+      status: await this.status(),
+      stats: await this.stats(),
     };
   }
 
-  currentSong(): Promise<Record<string, string>> {
-    return this.mpd.currentSong();
+  async list(type: Tag, options?: {
+    filter?: AnyFilter;
+    group: Tag;
+  }): Promise<{
+    group: string;
+    values: string[];
+  }[]>;
+  async list(type: Tag, options?: {
+    filter?: AnyFilter;
+  }): Promise<Record<string, string>[]>;
+  async list(type: Tag, options?: {
+    filter?: AnyFilter;
+    group?: Tag;
+  }): Promise<
+    Record<string, string>[] | { group: string; values: string[] }[]
+  > {
+    const response = await this.mpd.list(type, options);
+    if (options?.group) {
+      return parseUnknownGroup(response, options.group);
+    }
+    return parseUnknownList(response, type);
+  }
+
+  async currentSong(): Promise<Record<string, string>> {
+    const response = await this.mpd.currentSong();
+    return parseUnknown(response);
   }
 
   disconnect(): void {
-    this.mpd.disconnect();
+    this.mpd.close();
   }
 }
