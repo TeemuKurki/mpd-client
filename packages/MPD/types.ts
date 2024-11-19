@@ -934,6 +934,11 @@ export interface MPDProtocol {
   sendCommandBinary(
     message: string,
   ): Promise<BinaryResponse>;
+
+  /**
+   * Connect to MPD.
+   */
+  connect(): Promise<void>;
 }
 
 export interface MPDClientInterface {
@@ -972,4 +977,5 @@ export interface MPDClientInterface {
   >;
   currentSong(): Promise<Record<string, string>>;
   disconnect(): void;
+  connect(): Promise<void>;
 }

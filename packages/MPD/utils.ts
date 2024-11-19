@@ -10,6 +10,7 @@ export interface TCPConnection {
   };
   close: () => void;
   write: (data: Uint8Array) => Promise<number>;
+  connect: () => Promise<void>;
 }
 
 type Falsy = false | undefined;

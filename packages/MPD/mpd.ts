@@ -68,6 +68,10 @@ export class MPD implements MPDProtocol {
     this.#idleConnection = idleConnection;
   }
 
+  async connect() {
+    await Promise.all([this.#conn.connect(), this.#idleConnection.connect()]);
+  }
+
   /**
    * Send message to MPD and returns response
    * @param message Message to send

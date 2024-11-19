@@ -13,6 +13,7 @@ export interface TCPConnection {
   };
   close: () => void;
   write: (data: Uint8Array) => Promise<number>;
+  connect: () => Promise<void>;
 }
 
 const MSG_END_BIN = [
@@ -43,31 +44,38 @@ const getResponse = async (conn: Deno.TcpConn) => {
 };
 
 export class TCPClient implements TCPConnection {
-  #connection: Deno.TcpConn;
-  private constructor(connection: Deno.TcpConn) {
-    this.#connection = connection;
+  #host: string;
+  #port: number;
+  #connection: Deno.TcpConn | null;
+  constructor(host: string, port: number) {
+    this.#host = host;
+    this.#port = port;
+    this.#connection = null;
   }
-  static async connect(hostname: string, port: number) {
-    const conn = await Deno.connect({
-      hostname,
-      port,
+
+  async connect(): Promise<void> {
+    this.#connection = await Deno.connect({
+      hostname: this.#host,
+      port: this.#port,
     });
-    return new TCPClient(conn);
   }
 
   close(): void {
     console.debug("Close a connection");
-    this.#connection.close();
+    if (this.#connection) {
+      this.#connection.close();
+      this.#connection = null;
+    }
   }
 
   read(buffer: Uint8Array): Promise<number | null> {
-    assertExists(this.#connection);
+    assertExists(this.#connection, "No open connections");
     return this.#connection.read(buffer);
   }
   async readAll(): Promise<string>;
   async readAll(getInBinary: true): Promise<Uint8Array>;
   async readAll(getInBinary?: boolean): Promise<string | Uint8Array> {
-    assertExists(this.#connection);
+    assertExists(this.#connection, "No open connections");
     const data = await getResponse(this.#connection);
     if (getInBinary) {
       return data;
@@ -75,7 +83,7 @@ export class TCPClient implements TCPConnection {
     return new TextDecoder().decode(data);
   }
   write(data: Uint8Array): Promise<number> {
-    assertExists(this.#connection);
+    assertExists(this.#connection, "No open connections");
     return this.#connection.write(data);
   }
 }

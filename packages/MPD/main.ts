@@ -24,15 +24,18 @@ export class MPDClient implements MPDClientInterface {
     this.mpd = mpd;
   }
 
+  async connect(): Promise<void> {
+    await this.mpd.connect();
+  }
+
   //TODO: implement timeout and host/port from environment variables. https://mpd.readthedocs.io/en/latest/client.html#environment-variables
-  //TODO: Refactor host and port to be passed in as an object
-  static async connect(
-    connectFn: (hostname: string, port: number) => Promise<TCPConnection>,
+  static init<T extends TCPConnection>(
+    connectionClass: { new (hostname: string, port: number): T },
     hostname: string,
     port: number,
-  ): Promise<MPDClient> {
-    const connection = await connectFn(hostname, port);
-    const idleConnection = await connectFn(hostname, port);
+  ): MPDClient {
+    const connection = new connectionClass(hostname, port);
+    const idleConnection = new connectionClass(hostname, port);
     return new MPDClient(new MPD(connection, idleConnection));
   }
 
