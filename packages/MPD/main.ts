@@ -1,8 +1,12 @@
 import { MPD } from "./mpd.ts";
 import {
+  parse,
   parseUnknown,
   parseUnknownGroup,
   parseUnknownList,
+  ResolvedTransformer,
+  StatsTransform,
+  StatusTransform,
 } from "./transformers.ts";
 import type {
   AnyFilter,
@@ -24,16 +28,11 @@ export class MPDClient implements MPDClientInterface {
   //TODO: Refactor host and port to be passed in as an object
   static async connect(
     connectFn: (hostname: string, port: number) => Promise<TCPConnection>,
-    hostname?: string,
-    port?: number,
+    hostname: string,
+    port: number,
   ): Promise<MPDClient> {
-    const _host = getHost(hostname);
-    const _port = getPort(port);
-    if (!_host || !_port) {
-      throw new Error("No host or port provided");
-    }
-    const connection = await connectFn(_host, _port);
-    const idleConnection = await connectFn(_host, _port);
+    const connection = await connectFn(hostname, port);
+    const idleConnection = await connectFn(hostname, port);
     return new MPDClient(new MPD(connection, idleConnection));
   }
 
@@ -110,19 +109,19 @@ export class MPDClient implements MPDClientInterface {
     return parseUnknownList(res);
   }
 
-  async status(): Promise<Record<string, string>> {
+  async status(): Promise<ResolvedTransformer<typeof StatusTransform>> {
     const status = await this.mpd.status();
-    return parseUnknown(status);
+    return parse(status, StatusTransform);
   }
-  async stats(): Promise<Record<string, string>> {
+  async stats(): Promise<ResolvedTransformer<typeof StatsTransform>> {
     const status = await this.mpd.stats();
-    return parseUnknown(status);
+    return parse(status, StatsTransform);
   }
 
   async info(): Promise<{
     currentSong: Record<string, string>;
-    status: Record<string, string>;
-    stats: Record<string, string>;
+    status: ResolvedTransformer<typeof StatusTransform>;
+    stats: ResolvedTransformer<typeof StatsTransform>;
   }> {
     return {
       currentSong: await this.currentSong(),

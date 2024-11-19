@@ -1,3 +1,9 @@
+import {
+  ResolvedTransformer,
+  StatsTransform,
+  StatusTransform,
+} from "./transformers.ts";
+
 type FilterCompareMethod =
   | "=="
   | "!="
@@ -941,12 +947,12 @@ export interface MPDClientInterface {
     artist?: string,
   ): Promise<{ group: string; values: string[] }[]>;
   getTracks(album: string): Promise<Record<string, string>[]>;
-  status(): Promise<Record<string, string>>;
-  stats(): Promise<Record<string, string>>;
+  status(): Promise<ResolvedTransformer<typeof StatusTransform>>;
+  stats(): Promise<ResolvedTransformer<typeof StatsTransform>>;
   info(): Promise<{
     currentSong: Record<string, string>;
-    status: Record<string, string>;
-    stats: Record<string, string>;
+    status: ResolvedTransformer<typeof StatusTransform>;
+    stats: ResolvedTransformer<typeof StatsTransform>;
   }>;
   list(type: Tag, options?: {
     filter?: AnyFilter;
