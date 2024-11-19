@@ -4,7 +4,7 @@ import {
   parseUnknown,
   parseUnknownGroup,
   parseUnknownList,
-  ResolvedTransformer,
+  type ResolvedTransformer,
   StatsTransform,
   StatusTransform,
 } from "./transformers.ts";
@@ -15,7 +15,7 @@ import type {
   MPDProtocol,
   Tag,
 } from "./types.ts";
-import { createFilter, getHost, getPort } from "./utils.ts";
+import { createFilter } from "./utils.ts";
 import type { TCPConnection } from "./utils.ts";
 
 export class MPDClient implements MPDClientInterface {
