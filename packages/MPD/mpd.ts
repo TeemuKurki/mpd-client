@@ -613,20 +613,23 @@ export class MPD implements MPDProtocol {
   async find(
     filter: AnyFilter,
     options?: {
-      sort?: { tag: Tag; order?: "ASC" | "DEC" };
+      sort?: { tag: Tag; descending?: boolean };
       window?: [start: number, end: number];
     },
   ): Promise<string> {
-    let msg = `find ${createFilter(filter)}`;
-    if (options?.sort) {
-      msg += ` sort ${options.sort}`;
+    if (options) {
+      const order = options.sort?.descending ? "-" : "";
+      const sort = options.sort ? `sort ${order}${options.sort}` : "";
+      const window = options.window
+        ? `window ${rangeToCmd(options.window)}`
+        : "";
+      return this.sendCommand(
+        `find ${createFilter(filter)} ${sort} ${window}`,
+      );
     }
-    if (options?.window) {
-      msg += ` window ${options.window[0]}:${options.window[1]}`;
-    }
-    const result = await this.sendCommand(msg);
-
-    return handleError(result);
+    return this.sendCommand(
+      `find ${createFilter(filter)}`,
+    );
   }
 
   async list(
