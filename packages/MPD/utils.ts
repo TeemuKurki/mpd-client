@@ -54,7 +54,7 @@ export function handleBinaryResponse(
   );
   const headerEndIndex = indexOfNeedle(
     response,
-    new Uint8Array([10]),
+    new Uint8Array([10]), //\n
     binaryMatch,
   );
   if (binaryMatch === -1) {
