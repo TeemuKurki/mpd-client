@@ -1,5 +1,5 @@
 import type { AnyFilter } from "./types.ts";
-
+import { indexOfNeedle } from "@std/bytes";
 export interface TCPConnection {
   read: (buffer: Uint8Array) => Promise<number | null>;
   readAll: {
@@ -48,19 +48,26 @@ export function handleBinaryResponse(
     binarySize: number;
   };
 } {
-  const decoder = new TextDecoder();
-  const textResponse = decoder.decode(response);
-  const binaryRegex = new RegExp(/\nbinary: \d+\n/);
-  const match = binaryRegex.exec(textResponse);
-  if (!match) {
+  const binaryMatch = indexOfNeedle(
+    response,
+    new TextEncoder().encode("binary: "),
+  );
+  const headerEndIndex = indexOfNeedle(
+    response,
+    new Uint8Array([10]),
+    binaryMatch,
+  );
+  if (binaryMatch === -1) {
     throw new Error("Invalid response format: no binary header section.");
   }
-  const headerEndIndex = match[0].length + match.index;
+
   if (headerEndIndex === -1) {
     throw new Error("Invalid response format: no header section.");
   }
+  const binaryStartIndex = headerEndIndex + 1;
 
-  const headersText = textResponse.slice(0, headerEndIndex);
+  const decoder = new TextDecoder();
+  const headersText = decoder.decode(response.slice(0, binaryStartIndex));
   const headers = parseHeaders(headersText);
 
   const size = parseInt(headers["binary"] || headers["size"] || "0", 10);
@@ -68,8 +75,8 @@ export function handleBinaryResponse(
   if (isNaN(size)) throw new Error("Invalid binary size in response.");
   // Extract binary data
   const binaryData = response.slice(
-    headerEndIndex,
-    headerEndIndex + size,
+    binaryStartIndex,
+    binaryStartIndex + size,
   );
 
   return {
