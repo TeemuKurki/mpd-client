@@ -133,7 +133,7 @@ export class MPDClient implements MPDClientInterface {
     };
   }
 
-  async list(type: Tag, options?: {
+  async list(type: Tag, options: {
     filter?: AnyFilter;
     group: Tag;
   }): Promise<{
@@ -142,6 +142,7 @@ export class MPDClient implements MPDClientInterface {
   }[]>;
   async list(type: Tag, options?: {
     filter?: AnyFilter;
+    group?: undefined;
   }): Promise<Record<string, string>[]>;
   async list(type: Tag, options?: {
     filter?: AnyFilter;
