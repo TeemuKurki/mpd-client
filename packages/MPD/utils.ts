@@ -37,3 +37,58 @@ export const createFilter = (filter?: AnyFilter): string => {
     `(${filter.tag} ${comp} ${handleQuotes(filter.value, true)})`,
   );
 };
+
+export function handleBinaryResponse(
+  response: Uint8Array,
+): {
+  binary: Uint8Array;
+  headers: {
+    size: number;
+    type?: string;
+    binarySize: number;
+  };
+} {
+  const decoder = new TextDecoder();
+  const textResponse = decoder.decode(response);
+  const binaryRegex = new RegExp(/\nbinary: \d+\n/);
+  const match = binaryRegex.exec(textResponse);
+  if (!match) {
+    throw new Error("Invalid response format: no binary header section.");
+  }
+  const headerEndIndex = match[0].length + match.index;
+  if (headerEndIndex === -1) {
+    throw new Error("Invalid response format: no header section.");
+  }
+
+  const headersText = textResponse.slice(0, headerEndIndex);
+  const headers = parseHeaders(headersText);
+
+  const size = parseInt(headers["binary"] || headers["size"] || "0", 10);
+
+  if (isNaN(size)) throw new Error("Invalid binary size in response.");
+  // Extract binary data
+  const binaryData = response.slice(
+    headerEndIndex,
+    headerEndIndex + size,
+  );
+
+  return {
+    binary: binaryData,
+    headers: {
+      binarySize: size,
+      size: parseInt(headers["size"], 10),
+      type: headers["type"],
+    },
+  };
+}
+
+function parseHeaders(headerText: string): Record<string, string> {
+  const headers: Record<string, string> = {};
+  for (const line of headerText.split("\n")) {
+    const [key, ...valueParts] = line.split(": ");
+    if (key && valueParts.length > 0) {
+      headers[key.trim()] = valueParts.join(": ").trim();
+    }
+  }
+  return headers;
+}

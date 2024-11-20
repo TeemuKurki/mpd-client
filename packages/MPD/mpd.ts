@@ -1,6 +1,11 @@
 // deno-lint-ignore-file require-await
-import { createFilter, type TCPConnection } from "./utils.ts";
+import {
+  createFilter,
+  handleBinaryResponse,
+  type TCPConnection,
+} from "./utils.ts";
 import type { AnyFilter, BinaryResponse, MPDProtocol, Tag } from "./types.ts";
+import { concat } from "@std/bytes";
 
 export class ACKError extends Error {
   constructor(message: string) {
@@ -91,18 +96,42 @@ export class MPD implements MPDProtocol {
 
   async sendCommandBinary(
     message: string,
+    offset: number = 0,
   ): Promise<BinaryResponse> {
     if (this.idling) {
       const noidleBuffer = new Uint8Array(1);
       await this.#idleConnection.write(new TextEncoder().encode("noidle\n"));
       await this.#idleConnection.read(noidleBuffer);
     }
-    await this.#conn.write(new TextEncoder().encode(message + "\n"));
-    const binary = await this.#conn.readAll(true);
-    throw new Error("Method not implemented.");
+
+    let off = offset;
+    const meta: {
+      type?: string;
+      size: number;
+    } = {
+      type: "",
+      size: 0,
+    };
+    const chunks: Uint8Array[] = [];
+    while (true) {
+      await this.#conn.write(
+        new TextEncoder().encode(`${message} ${off}\n`),
+      );
+      const binary = await this.#conn.readAll(true);
+      const res = handleBinaryResponse(binary);
+
+      chunks.push(res.binary);
+      off += res.headers.binarySize;
+      if (off >= res.headers.size) {
+        meta.size = res.headers.size;
+        meta.type = res.headers.type;
+        break;
+      }
+    }
+    const data = concat(chunks);
     return {
-      meta: "TODO: Implement",
-      binary: binary,
+      meta: meta,
+      binary: data,
     };
   }
 
@@ -373,9 +402,9 @@ export class MPD implements MPDProtocol {
   }
   readPicture(
     uri: string,
-    offset: number,
+    offset: number = 0,
   ): Promise<BinaryResponse> {
-    throw new Error("Method not implemented.");
+    return this.sendCommandBinary(`readpicture "${uri}"`, offset);
   }
   async search(
     filter: AnyFilter,
@@ -662,20 +691,13 @@ export class MPD implements MPDProtocol {
     throw new Error("Already idling");
   }
 
-  /**
-   * Execute command list call and return all values in one object
-   * @returns Command list responses objects combined into single object
-   */
   async commandList(...commands: string[]): Promise<string> {
     const msgList = ["command_list_begin", ...commands, "command_list_end"];
     const msg = msgList.join("\n");
     const result = await this.sendCommand(msg);
     return handleError(result);
   }
-  /**
-   * Execute command list ok call and return each command response value in own object
-   * @returns Command list response objects in a list
-   */
+
   async commandListOK(
     ...commands: string[]
   ): Promise<string> {

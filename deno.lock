@@ -1,11 +1,13 @@
 {
   "version": "4",
   "specifiers": {
-    "jsr:@std/assert@1": "1.0.6",
+    "jsr:@std/assert@1": "1.0.8",
     "jsr:@std/assert@^1.0.6": "1.0.6",
     "jsr:@std/assert@^1.0.8": "1.0.8",
+    "jsr:@std/bytes@*": "1.0.3",
     "jsr:@std/bytes@^1.0.2": "1.0.3",
     "jsr:@std/bytes@^1.0.3": "1.0.3",
+    "jsr:@std/bytes@^1.0.4": "1.0.4",
     "jsr:@std/internal@^1.0.4": "1.0.4",
     "jsr:@std/internal@^1.0.5": "1.0.5",
     "jsr:@std/io@*": "0.225.0",
@@ -27,6 +29,9 @@
     },
     "@std/bytes@1.0.3": {
       "integrity": "e5d5b9e685966314e4edb4be60dfc4bd7624a075bfd4ec8109252b4320f76452"
+    },
+    "@std/bytes@1.0.4": {
+      "integrity": "11a0debe522707c95c7b7ef89b478c13fb1583a7cfb9a85674cd2cc2e3a28abc"
     },
     "@std/internal@1.0.4": {
       "integrity": "62e8e4911527e5e4f307741a795c0b0a9e6958d0b3790716ae71ce085f755422"
@@ -105,7 +110,8 @@
     "members": {
       "packages/MPD": {
         "dependencies": [
-          "jsr:@std/assert@1"
+          "jsr:@std/assert@1",
+          "jsr:@std/bytes@^1.0.4"
         ]
       },
       "packages/clients/deno": {

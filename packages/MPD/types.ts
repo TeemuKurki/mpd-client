@@ -26,7 +26,10 @@ export type Filter = {
 
 export type Range = [start: number, end: number];
 export type BinaryResponse = {
-  meta: string;
+  meta: {
+    type?: string;
+    size: number;
+  };
   binary: Uint8Array;
 };
 
@@ -589,7 +592,7 @@ export interface MPDProtocol {
    */
   readPicture(
     uri: string,
-    offset: number,
+    offset?: number,
   ): Promise<BinaryResponse>;
 
   /**
@@ -920,6 +923,18 @@ export interface MPDProtocol {
   sendMessage(channel: string, text: string): Promise<void>;
 
   // --- Other Commands ---
+  /**
+   * Execute command list call with passed values as commands
+   */
+  commandList(...commands: string[]): Promise<string>;
+
+  /**
+   * Execute command list ok call with passed values as commands
+   */
+  commandListOK(
+    ...commands: string[]
+  ): Promise<string>;
+
   /**
    * Send command to MPD and returns response as string
    * @param message Message to send
