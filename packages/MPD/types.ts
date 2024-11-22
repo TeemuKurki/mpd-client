@@ -744,7 +744,7 @@ export interface MPDProtocol {
   /**
    * Disconnects from the MPD server.
    */
-  close(): void;
+  //close(): void;
 
   /**
    * Kills MPD.
@@ -953,7 +953,7 @@ export interface MPDProtocol {
   /**
    * Connect to MPD.
    */
-  connect(): Promise<void>;
+  //connect(): Promise<void>;
 }
 
 export interface MPDClientInterface {
@@ -991,6 +991,6 @@ export interface MPDClientInterface {
     Record<string, string>[] | { group: string; values: string[] }[]
   >;
   currentSong(): Promise<Record<string, string>>;
-  disconnect(): void;
-  connect(): Promise<void>;
+  //disconnect(): void;
+  //connect(): Promise<void>;
 }

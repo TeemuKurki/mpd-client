@@ -8,35 +8,28 @@ import {
   StatsTransform,
   StatusTransform,
 } from "./transformers.ts";
-import type {
-  AnyFilter,
-  Filter,
-  MPDClientInterface,
-  MPDProtocol,
-  Tag,
-} from "./types.ts";
+import type { AnyFilter, Filter, MPDClientInterface, Tag } from "./types.ts";
 import { createFilter } from "./utils.ts";
 import type { TCPConnection } from "./utils.ts";
 
+export interface TCPClient<T = TCPConnection> {
+  new (connetion: any): T;
+  connect(hostname: string, port: number): Promise<T>;
+}
+
 export class MPDClient implements MPDClientInterface {
-  mpd: MPDProtocol;
-  constructor(mpd: MPDProtocol) {
+  mpd: MPD;
+  constructor(mpd: MPD) {
     this.mpd = mpd;
   }
 
-  async connect(): Promise<void> {
-    await this.mpd.connect();
-  }
-
   //TODO: implement timeout and host/port from environment variables. https://mpd.readthedocs.io/en/latest/client.html#environment-variables
-  static init<T extends TCPConnection>(
-    connectionClass: { new (hostname: string, port: number): T },
+  static init(
+    connectionClass: TCPClient,
     hostname: string,
     port: number,
   ): MPDClient {
-    const connection = new connectionClass(hostname, port);
-    const idleConnection = new connectionClass(hostname, port);
-    return new MPDClient(new MPD(connection, idleConnection));
+    return new MPDClient(new MPD(connectionClass, hostname, port));
   }
 
   async queue(): Promise<Record<string, string>[]> {
@@ -104,7 +97,15 @@ export class MPDClient implements MPDClientInterface {
     return parseUnknownGroup(result, "albumartist");
   }
 
-  async getTracks(album: string): Promise<Record<string, string>[]> {
+  async getTracks(
+    album: string,
+    limit?: number,
+  ): Promise<Record<string, string>[]> {
+    const opts = limit !== undefined
+      ? {
+        window: [0, limit] as [number, number],
+      }
+      : undefined;
     const res = await this.mpd.find({
       tag: "album",
       value: album,
@@ -160,9 +161,5 @@ export class MPDClient implements MPDClientInterface {
   async currentSong(): Promise<Record<string, string>> {
     const response = await this.mpd.currentSong();
     return parseUnknown(response);
-  }
-
-  disconnect(): void {
-    this.mpd.close();
   }
 }

@@ -1,5 +1,5 @@
 import type { AnyFilter } from "./types.ts";
-import { indexOfNeedle } from "@std/bytes";
+import { indexOfNeedle } from "jsr:@std/bytes";
 export interface TCPConnection {
   read: (buffer: Uint8Array) => Promise<number | null>;
   readAll: {
@@ -10,7 +10,7 @@ export interface TCPConnection {
   };
   close: () => void;
   write: (data: Uint8Array) => Promise<number>;
-  connect: () => Promise<void>;
+  //connect: () => Promise<void>;
 }
 
 type Falsy = false | undefined;

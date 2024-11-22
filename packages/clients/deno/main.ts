@@ -1,5 +1,5 @@
-import { concat, endsWith, includesNeedle } from "@std/bytes";
-import { assertExists } from "@std/assert";
+import { concat, endsWith, includesNeedle } from "jsr:@std/bytes";
+import { assertExists } from "jsr:@std/assert";
 
 type Falsy = false | undefined;
 
@@ -13,7 +13,7 @@ export interface TCPConnection {
   };
   close: () => void;
   write: (data: Uint8Array) => Promise<number>;
-  connect: () => Promise<void>;
+  //connect: () => Promise<void>;
 }
 
 const MSG_END_BIN = [
@@ -44,28 +44,22 @@ const getResponse = async (conn: Deno.TcpConn) => {
 };
 
 export class TCPClient implements TCPConnection {
-  #host: string;
-  #port: number;
-  #connection: Deno.TcpConn | null;
-  constructor(host: string, port: number) {
-    this.#host = host;
-    this.#port = port;
-    this.#connection = null;
+  #connection: Deno.TcpConn;
+  constructor(connection: Deno.TcpConn) {
+    this.#connection = connection;
   }
 
-  async connect(): Promise<void> {
-    this.#connection = await Deno.connect({
-      hostname: this.#host,
-      port: this.#port,
+  static async connect(host: string, port: number): Promise<TCPClient> {
+    const connection = await Deno.connect({
+      hostname: host,
+      port: port,
     });
+    return new TCPClient(connection);
   }
 
   close(): void {
     console.debug("Close a connection");
-    if (this.#connection) {
-      this.#connection.close();
-      this.#connection = null;
-    }
+    this.#connection.close();
   }
 
   read(buffer: Uint8Array): Promise<number | null> {

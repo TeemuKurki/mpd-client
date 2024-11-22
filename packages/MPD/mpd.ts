@@ -5,7 +5,8 @@ import {
   type TCPConnection,
 } from "./utils.ts";
 import type { AnyFilter, BinaryResponse, MPDProtocol, Tag } from "./types.ts";
-import { concat } from "@std/bytes";
+import { concat } from "jsr:@std/bytes";
+import type { TCPClient } from "./main.ts";
 
 export class ACKError extends Error {
   constructor(message: string) {
@@ -65,17 +66,22 @@ const handleError = (input: string): string => {
 };
 
 export class MPD implements MPDProtocol {
-  #conn: TCPConnection;
-  #idleConnection: TCPConnection;
+  #conn: TCPClient<TCPConnection>;
   idling: boolean = false;
-  constructor(connection: TCPConnection, idleConnection: TCPConnection) {
+  #host: string;
+  #port: number;
+  constructor(
+    connection: TCPClient<TCPConnection>,
+    host: string,
+    port: number,
+  ) {
     this.#conn = connection;
-    this.#idleConnection = idleConnection;
+    this.#host = host, this.#port = port;
   }
 
-  async connect() {
+  /* async connect() {
     await Promise.all([this.#conn.connect(), this.#idleConnection.connect()]);
-  }
+  } */
 
   /**
    * Send message to MPD and returns response
@@ -84,24 +90,29 @@ export class MPD implements MPDProtocol {
   async sendCommand(
     message: string,
   ): Promise<string> {
+    const connection = await this.#conn.connect(this.#host, this.#port);
     if (this.idling) {
       //console.log("Idling, sending noidle")
       const noidleBuffer = new Uint8Array(1);
-      await this.#idleConnection.write(new TextEncoder().encode("noidle\n"));
-      await this.#idleConnection.read(noidleBuffer);
+      await connection.write(new TextEncoder().encode("noidle\n"));
+      await connection.read(noidleBuffer);
     }
-    await this.#conn.write(new TextEncoder().encode(message + "\n"));
-    return this.#conn.readAll();
+    await connection.write(new TextEncoder().encode(message + "\n"));
+    const response = await connection.readAll();
+    connection.close();
+    return response;
   }
 
   async sendCommandBinary(
     message: string,
     offset: number = 0,
   ): Promise<BinaryResponse> {
+    const connection = await this.#conn.connect(this.#host, this.#port);
+
     if (this.idling) {
       const noidleBuffer = new Uint8Array(1);
-      await this.#idleConnection.write(new TextEncoder().encode("noidle\n"));
-      await this.#idleConnection.read(noidleBuffer);
+      await connection.write(new TextEncoder().encode("noidle\n"));
+      await connection.read(noidleBuffer);
     }
 
     let off = offset;
@@ -114,10 +125,10 @@ export class MPD implements MPDProtocol {
     };
     const chunks: Uint8Array[] = [];
     while (true) {
-      await this.#conn.write(
+      await connection.write(
         new TextEncoder().encode(`${message} ${off}\n`),
       );
-      const binary = await this.#conn.readAll(true);
+      const binary = await connection.readAll(true);
       const res = handleBinaryResponse(binary);
 
       chunks.push(res.binary);
@@ -358,7 +369,7 @@ export class MPD implements MPDProtocol {
     uri: string,
     offsets: number,
   ): Promise<BinaryResponse> {
-    throw new Error("Method not implemented.");
+    return this.sendCommandBinary(`albumart ${uri}`, offsets);
   }
   async count(
     filter: AnyFilter,
@@ -681,11 +692,12 @@ export class MPD implements MPDProtocol {
   }
 
   async idle(...subsystems: string[]): Promise<string> {
+    const connection = await this.#conn.connect(this.#host, this.#port);
     if (!this.idling) {
-      await this.#idleConnection.write(
+      await connection.write(
         new TextEncoder().encode(`idle ${subsystems.join(" ")}\n`),
       );
-      const result = await this.#idleConnection.readAll();
+      const result = await connection.readAll();
       return handleError(result);
     }
     throw new Error("Already idling");
@@ -719,10 +731,5 @@ export class MPD implements MPDProtocol {
   async ping(): Promise<string> {
     const result = await this.sendCommand("ping");
     return handleError(result);
-  }
-
-  close(): void {
-    this.#conn.close();
-    this.#idleConnection.close();
   }
 }
