@@ -2,6 +2,7 @@ import {
   ResolvedTransformer,
   StatsTransform,
   StatusTransform,
+  TrackTransform,
 } from "./transformers.ts";
 
 type FilterCompareMethod =
@@ -957,16 +958,20 @@ export interface MPDProtocol {
 }
 
 export interface MPDClientInterface {
-  queue(): Promise<Record<string, string>[]>;
+  queue(): Promise<Record<string, unknown>[]>;
   clearQueue(): Promise<void>;
   clearRestOfQueue(): Promise<void>;
   addToQueue(params: { filter?: AnyFilter; uri?: string }): Promise<void>;
-  addAlbumToQueue(album: string, artist?: string): Promise<string>;
+  addAlbumToQueue(album: string, artist?: string): Promise<{
+    albumPos: number;
+  }>;
   listArtists(): Promise<string[]>;
   listAlbums(
     artist?: string,
   ): Promise<{ group: string; values: string[] }[]>;
-  getTracks(album: string): Promise<Record<string, string>[]>;
+  getTracks(
+    album: string,
+  ): Promise<ResolvedTransformer<typeof TrackTransform>[]>;
   status(): Promise<ResolvedTransformer<typeof StatusTransform>>;
   stats(): Promise<ResolvedTransformer<typeof StatsTransform>>;
   info(): Promise<{
@@ -983,14 +988,14 @@ export interface MPDClientInterface {
   }[]>;
   list(type: Tag, options?: {
     filter?: AnyFilter;
-  }): Promise<Record<string, string>[]>;
+  }): Promise<Record<string, unknown>[]>;
   list(type: Tag, options?: {
     filter?: AnyFilter;
     group?: Tag;
   }): Promise<
-    Record<string, string>[] | { group: string; values: string[] }[]
+    Record<string, unknown>[] | { group: string; values: string[] }[]
   >;
-  currentSong(): Promise<Record<string, string>>;
+  currentSong(): Promise<Record<string, unknown>>;
   //disconnect(): void;
   //connect(): Promise<void>;
 }

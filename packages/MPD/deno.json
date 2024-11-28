@@ -8,6 +8,7 @@
     "@std/bytes": "jsr:@std/bytes@^1.0.4"
   },
   "exports": {
-    ".": "./main.ts"
+    ".": "./main.ts",
+    "./transformers": "./transformers.ts"
   }
 }

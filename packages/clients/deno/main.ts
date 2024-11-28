@@ -58,7 +58,6 @@ export class TCPClient implements TCPConnection {
   }
 
   close(): void {
-    console.debug("Close a connection");
     this.#connection.close();
   }
 

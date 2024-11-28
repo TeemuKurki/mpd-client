@@ -8,6 +8,8 @@ export type ResolvedTransformer<T> = {
   [K in keyof T]: ConstructorToType<T[K]>;
 };
 
+export type Transformer = Record<string, (value: string) => any>;
+
 export const StatusTransform = {
   partition: String,
   volume: Number,
@@ -32,7 +34,7 @@ export const StatusTransform = {
   audio: String,
   updating_db: Boolean,
   error: String,
-} satisfies Record<string, (value: string) => any>;
+} satisfies Transformer;
 
 export const StatsTransform = {
   artists: Number,
@@ -42,7 +44,32 @@ export const StatsTransform = {
   db_playtime: Number,
   db_update: Number,
   playtime: Number,
-} satisfies Record<string, (value: string) => any>;
+} satisfies Transformer;
+
+export const TrackTransform = {
+  file: String,
+  Format: String,
+  Album: String,
+  Comment: String,
+  Disc: Number,
+  Track: Number,
+  Title: String,
+  Date: String,
+  Artist: String,
+  OriginalDate: String,
+  MUSICBRAINZ_ALBUMID: String,
+  MUSICBRAINZ_ALBUMARTISTID: String,
+  MUSICBRAINZ_TRACKID: String,
+  MUSICBRAINZ_ARTISTID: String,
+  MUSICBRAINZ_RELEASETRACKID: String,
+  AlbumArtist: String,
+  AlbumArtistSort: String,
+  Label: String,
+  ArtistSort: String,
+  Genre: (input: string | string[]) => Array.isArray(input) ? input : [input],
+  Time: Number,
+  duration: Number,
+} satisfies Transformer;
 
 export const parse = <T extends Record<string, any>>(
   input: string,
@@ -56,7 +83,15 @@ export const parse = <T extends Record<string, any>>(
       const [key, value] = line.split(": ");
       if (key in transformer) {
         const transform = transformer[key as keyof typeof transformer];
-        return { ...acc, [key]: transform(value) };
+        const val = transform(value);
+        if (Array.isArray(val) && key in acc) {
+          const prev = acc[key] as Array<unknown>;
+          return {
+            ...acc,
+            [key]: [...prev, val],
+          };
+        }
+        return { ...acc, [key]: val };
       } else if (allowUnknownKeys) {
         return { ...acc, [key]: value };
       }
@@ -68,7 +103,7 @@ export const parseUnknown = (input: string): Record<string, string> => {
   return input
     .split("\n")
     .reduce((acc, line) => {
-      if (line.includes("ACK")) {
+      if (line.startsWith("ACK ")) {
         return { ...acc, ACK_ERROR: line };
       } else if (line.includes(":")) {
         const [key, value] = line.split(": ");
@@ -85,8 +120,8 @@ export const parseUnknown = (input: string): Record<string, string> => {
 export const parseUnknownList = (
   input: string,
   separatorTag?: string,
-): Record<string, string>[] => {
-  const result: Record<string, string>[] = [];
+): Record<string, unknown>[] => {
+  const result: Record<string, unknown>[] = [];
   let separator = separatorTag || "";
   input
     .split("\n")
@@ -105,12 +140,46 @@ export const parseUnknownList = (
         });
       } else {
         const last = result.at(-1);
+
         if (last) {
-          last[key] = value;
+          if (key in last) {
+            const prev = last[key];
+            last[key] = Array.isArray(prev) ? [...prev, value] : [prev, value];
+          } else {
+            last[key] = value;
+          }
         }
       }
     });
   return result;
+};
+export const parseList = <T extends Transformer>(
+  input: string,
+  transformer: T,
+  separatorTag?: string,
+  allowUnknownKeys = false,
+): ResolvedTransformer<T>[] => {
+  const result = parseUnknownList(input, separatorTag);
+  return result.map((item) => {
+    return Object.keys(item).reduce((acc, curr) => {
+      if (curr in transformer) {
+        const transform = transformer[curr];
+        return {
+          ...acc,
+          [curr]: transform(item[curr] as any),
+        };
+      }
+      if (allowUnknownKeys) {
+        return {
+          ...acc,
+          [curr]: item[curr],
+        };
+      }
+      return {
+        ...acc,
+      };
+    }, {} as ResolvedTransformer<T>);
+  });
 };
 export const parseUnknownGroup = (
   input: string,

@@ -1,12 +1,14 @@
 import { MPD } from "./mpd.ts";
 import {
   parse,
+  parseList,
   parseUnknown,
   parseUnknownGroup,
   parseUnknownList,
   type ResolvedTransformer,
   StatsTransform,
   StatusTransform,
+  TrackTransform,
 } from "./transformers.ts";
 import type { AnyFilter, Filter, MPDClientInterface, Tag } from "./types.ts";
 import { createFilter } from "./utils.ts";
@@ -32,7 +34,7 @@ export class MPDClient implements MPDClientInterface {
     return new MPDClient(new MPD(connectionClass, hostname, port));
   }
 
-  async queue(): Promise<Record<string, string>[]> {
+  async queue(): Promise<Record<string, unknown>[]> {
     const response = await this.mpd.playlistInfo();
     return parseUnknownList(response, "file");
   }
@@ -67,19 +69,39 @@ export class MPDClient implements MPDClientInterface {
   /**
    * Add an album to the queue
    */
-  async addAlbumToQueue(album: string, artist?: string): Promise<string> {
+  async addAlbumToQueue(album: string, artist?: string): Promise<{
+    albumPos: number;
+  }> {
     const filterParams: Filter[] = [{ tag: "album", value: album }];
     if (artist) {
       filterParams.push({ tag: "artist", value: artist });
     }
     const filter = createFilter(filterParams);
-    return await this.mpd.findAdd(filter);
+    const currentQueue = await this.queue();
+    const lastTrack = currentQueue.at(-1);
+    await this.mpd.findAdd(filter);
+    if (!lastTrack || !lastTrack.Pos) {
+      return {
+        albumPos: 0,
+      };
+    }
+    return {
+      albumPos: Number.parseInt(lastTrack.Pos as string, 10) + 1,
+    };
+  }
+
+  async play(pos?: number): Promise<void> {
+    if (!pos) {
+      await this.mpd.pause();
+    } else {
+      await this.mpd.play(pos);
+    }
   }
 
   async listArtists(): Promise<string[]> {
     const response = await this.mpd.list("albumartist");
     const res = parseUnknownList(response, "albumartist");
-    return res.map((artist) => artist.AlbumArtist).filter(Boolean);
+    return res.map((artist) => artist.AlbumArtist as string).filter(Boolean);
   }
   async listAlbums(
     artist?: string,
@@ -100,7 +122,7 @@ export class MPDClient implements MPDClientInterface {
   async getTracks(
     album: string,
     limit?: number,
-  ): Promise<Record<string, string>[]> {
+  ): Promise<ResolvedTransformer<typeof TrackTransform>[]> {
     const opts = limit !== undefined
       ? {
         window: [0, limit] as [number, number],
@@ -109,8 +131,8 @@ export class MPDClient implements MPDClientInterface {
     const res = await this.mpd.find({
       tag: "album",
       value: album,
-    });
-    return parseUnknownList(res);
+    }, opts);
+    return parseList(res, TrackTransform, "file", true);
   }
 
   async status(): Promise<ResolvedTransformer<typeof StatusTransform>> {
@@ -144,12 +166,12 @@ export class MPDClient implements MPDClientInterface {
   async list(type: Tag, options?: {
     filter?: AnyFilter;
     group?: undefined;
-  }): Promise<Record<string, string>[]>;
+  }): Promise<Record<string, unknown>[]>;
   async list(type: Tag, options?: {
     filter?: AnyFilter;
     group?: Tag;
   }): Promise<
-    Record<string, string>[] | { group: string; values: string[] }[]
+    Record<string, unknown>[] | { group: string; values: string[] }[]
   > {
     const response = await this.mpd.list(type, options);
     if (options?.group) {

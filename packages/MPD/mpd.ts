@@ -59,7 +59,7 @@ const isGroupListOptions = (
 };
 
 const handleError = (input: string): string => {
-  if (input.startsWith("ACK")) {
+  if (input.startsWith("ACK ")) {
     throw new ACKError(input);
   }
   return input;
@@ -90,13 +90,14 @@ export class MPD implements MPDProtocol {
   async sendCommand(
     message: string,
   ): Promise<string> {
-    const connection = await this.#conn.connect(this.#host, this.#port);
     if (this.idling) {
+      const idleConnection = await this.#conn.connect(this.#host, this.#port);
       //console.log("Idling, sending noidle")
-      const noidleBuffer = new Uint8Array(1);
-      await connection.write(new TextEncoder().encode("noidle\n"));
-      await connection.read(noidleBuffer);
+      const noidleBuffer = new Uint8Array(128);
+      await idleConnection.write(new TextEncoder().encode("noidle\n"));
+      await idleConnection.read(noidleBuffer);
     }
+    const connection = await this.#conn.connect(this.#host, this.#port);
     await connection.write(new TextEncoder().encode(message + "\n"));
     const response = await connection.readAll();
     connection.close();
@@ -110,7 +111,7 @@ export class MPD implements MPDProtocol {
     const connection = await this.#conn.connect(this.#host, this.#port);
 
     if (this.idling) {
-      const noidleBuffer = new Uint8Array(1);
+      const noidleBuffer = new Uint8Array(128);
       await connection.write(new TextEncoder().encode("noidle\n"));
       await connection.read(noidleBuffer);
     }
@@ -188,7 +189,7 @@ export class MPD implements MPDProtocol {
     this.sendCommand(`next`);
   }
   async pause(state?: 1 | 0): Promise<void> {
-    this.sendCommand(`pause ${state}`);
+    await this.sendCommand(`pause ${state ?? ""}`);
   }
   async play(SONGPOS: number): Promise<void> {
     this.sendCommand(`play ${SONGPOS}`);
@@ -692,8 +693,8 @@ export class MPD implements MPDProtocol {
   }
 
   async idle(...subsystems: string[]): Promise<string> {
-    const connection = await this.#conn.connect(this.#host, this.#port);
     if (!this.idling) {
+      const connection = await this.#conn.connect(this.#host, this.#port);
       await connection.write(
         new TextEncoder().encode(`idle ${subsystems.join(" ")}\n`),
       );
@@ -701,6 +702,15 @@ export class MPD implements MPDProtocol {
       return handleError(result);
     }
     throw new Error("Already idling");
+  }
+  async noidle(): Promise<string> {
+    const connection = await this.#conn.connect(this.#host, this.#port);
+    const noidleBuffer = new Uint8Array(128);
+    await connection.write(new TextEncoder().encode("noidle\n"));
+    await connection.read(noidleBuffer);
+    const result = new TextDecoder().decode(noidleBuffer);
+    this.idling = false;
+    return handleError(result);
   }
 
   async commandList(...commands: string[]): Promise<string> {
