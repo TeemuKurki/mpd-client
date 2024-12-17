@@ -21,9 +21,10 @@ const MSG_END_BIN = [
   new TextEncoder().encode("ACK "),
 ];
 
+//If connections are not alway finishing this is probably the culprit
 const getResponse = async (conn: Deno.TcpConn) => {
   let data = new Uint8Array();
-  const buf = new Uint8Array(128);
+  const buf = new Uint8Array(512);
   while (true) {
     const bytesRead = await conn.read(buf);
     if (bytesRead === null) {
