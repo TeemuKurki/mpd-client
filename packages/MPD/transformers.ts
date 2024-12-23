@@ -32,7 +32,7 @@ export const StatusTransform = {
   mixrampdb: Number,
   mixrampdelay: Number,
   audio: String,
-  updating_db: Boolean,
+  updating_db: String,
   error: String,
 } satisfies Transformer;
 
@@ -66,7 +66,7 @@ export const TrackTransform = {
   AlbumArtistSort: String,
   Label: String,
   ArtistSort: String,
-  Genre: (input: string | string[]) => Array.isArray(input) ? input : [input],
+  Genre: Array,
   Time: Number,
   duration: Number,
 } satisfies Transformer;
@@ -88,7 +88,7 @@ export const parse = <T extends Record<string, any>>(
           const prev = acc[key] as Array<unknown>;
           return {
             ...acc,
-            [key]: [...prev, val],
+            [key]: [...prev, ...val],
           };
         }
         return { ...acc, [key]: val };
