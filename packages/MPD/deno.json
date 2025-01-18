@@ -10,5 +10,9 @@
   "exports": {
     ".": "./main.ts",
     "./transformers": "./transformers.ts"
+  },
+  "publish": {
+    "exclude": ["tests/**/*.test.ts"],
+    "include": ["*.ts", "README.md", "LICENSE.txt", "deno.json"]
   }
 }
