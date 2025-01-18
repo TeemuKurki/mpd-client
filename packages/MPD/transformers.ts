@@ -1,16 +1,16 @@
+import type {
+  ResolvedTransformer,
+  StatsTransformType,
+  StatusTransformType,
+  TrackTransformType,
+  Transformer,
+} from "./types.ts";
+
 function Bool(value: string): 0 | 1 {
   return value === "1" ? 1 : 0;
 }
 
-type ConstructorToType<T> = T extends (value: string) => infer R ? R : string;
-
-export type ResolvedTransformer<T> = {
-  [K in keyof T]: ConstructorToType<T[K]>;
-};
-
-export type Transformer = Record<string, (value: string) => any>;
-
-export const StatusTransform = {
+export const StatusTransform: StatusTransformType = {
   partition: String,
   volume: Number,
   repeat: Bool,
@@ -36,7 +36,7 @@ export const StatusTransform = {
   error: String,
 } satisfies Transformer;
 
-export const StatsTransform = {
+export const StatsTransform: StatsTransformType = {
   artists: Number,
   albums: Number,
   songs: Number,
@@ -46,7 +46,7 @@ export const StatsTransform = {
   playtime: Number,
 } satisfies Transformer;
 
-export const TrackTransform = {
+export const TrackTransform: TrackTransformType = {
   file: String,
   Format: String,
   Album: String,

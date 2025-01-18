@@ -5,7 +5,7 @@ import {
   type TCPConnection,
 } from "./utils.ts";
 import type { AnyFilter, BinaryResponse, MPDProtocol, Tag } from "./types.ts";
-import { concat } from "jsr:@std/bytes";
+import { concat } from "@std/bytes";
 import type { TCPClient } from "./main.ts";
 
 export class ACKError extends Error {
@@ -733,7 +733,7 @@ export class MPD implements MPDProtocol {
     const result = await this.sendCommand("playlist");
     return handleError(result);
   }
-  async playlistinfo() {
+  async playlistinfo(): Promise<string> {
     const result = await this.sendCommand("playlistinfo");
     return handleError(result);
   }
