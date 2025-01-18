@@ -1,5 +1,5 @@
-import { concat, endsWith, includesNeedle } from "jsr:@std/bytes";
-import { assertExists } from "jsr:@std/assert";
+import { concat, endsWith, includesNeedle } from "@std/bytes";
+import { assertExists } from "@std/assert";
 
 type Falsy = false | undefined;
 
