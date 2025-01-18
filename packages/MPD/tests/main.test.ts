@@ -1,15 +1,15 @@
 import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import { type Spy, spy } from "jsr:@std/testing/mock";
-import { MPDClient } from "../../packages/MPD/main.ts";
+import { MPDClient } from "../main.ts";
 
-import type { TCPConnection } from "./utils.ts";
+import type { TCPConnection } from "../utils.ts";
 import {
   assertEquals,
   assertInstanceOf,
   assertObjectMatch,
   assertRejects,
 } from "@std/assert";
-import { ACKError } from "../../packages/MPD/mpd.ts";
+import { ACKError } from "../mpd.ts";
 
 let closeSpy = spy(() => {});
 let readSpy = spy(async (_buffer: Uint8Array) => 0);
