@@ -13,7 +13,6 @@ export interface TCPConnection {
   };
   close: () => void;
   write: (data: Uint8Array) => Promise<number>;
-  //connect: () => Promise<void>;
 }
 
 const MSG_END_BIN = [
