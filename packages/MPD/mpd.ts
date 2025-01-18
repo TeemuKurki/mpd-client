@@ -395,7 +395,7 @@ export class MPD implements MPDProtocol {
   ): Promise<string> {
     if (options) {
       const order = options.sort?.descending ? "-" : "";
-      const sort = options.sort ? `sort ${order}${options.sort}` : "";
+      const sort = options.sort ? `sort ${order}${options.sort.tag}` : "";
       const window = options.window
         ? `window ${rangeToCmd(options.window)}`
         : "";
@@ -427,7 +427,7 @@ export class MPD implements MPDProtocol {
   ): Promise<string> {
     if (options) {
       const order = options.sort?.descending ? "-" : "";
-      const sort = options.sort ? `sort ${order}${options.sort}` : "";
+      const sort = options.sort ? `sort ${order}${options.sort.tag}` : "";
       const window = options.window
         ? `window ${rangeToCmd(options.window)}`
         : "";
@@ -449,7 +449,7 @@ export class MPD implements MPDProtocol {
   ): Promise<string> {
     if (options) {
       const order = options.sort?.descending ? "-" : "";
-      const sort = options.sort ? `sort ${order}${options.sort}` : "";
+      const sort = options.sort ? `sort ${order}${options.sort.tag}` : "";
       const window = options.window
         ? `window ${rangeToCmd(options.window)}`
         : "";
@@ -477,7 +477,7 @@ export class MPD implements MPDProtocol {
   ): Promise<string> {
     if (options) {
       const order = options.sort?.descending ? "-" : "";
-      const sort = options.sort ? `sort ${order}${options.sort}` : "";
+      const sort = options.sort ? `sort ${order}${options.sort.tag}` : "";
       const window = options.window
         ? `window ${rangeToCmd(options.window)}`
         : "";
@@ -664,7 +664,7 @@ export class MPD implements MPDProtocol {
   ): Promise<string> {
     if (options) {
       const order = options.sort?.descending ? "-" : "";
-      const sort = options.sort ? `sort ${order}${options.sort}` : "";
+      const sort = options.sort ? `sort ${order}${options.sort.tag}` : "";
       const window = options.window
         ? `window ${rangeToCmd(options.window)}`
         : "";
