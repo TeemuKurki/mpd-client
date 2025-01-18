@@ -15,6 +15,6 @@
   },
   "publish": {
     "exclude": ["tests/**/*.test.ts"],
-    "include": ["*.ts", "README.md", "LICENSE.txt", "deno.json"]
+    "include": ["*.ts", "README.md", "LICENSE", "deno.json"]
   }
 }
