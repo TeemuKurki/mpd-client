@@ -126,6 +126,7 @@ export class MPDClient implements MPDClientInterface {
 
   async getTracks(
     album: string,
+    artist?: string,
     limit?: number,
   ): Promise<ResolvedTransformer<typeof TrackTransform>[]> {
     const opts = limit !== undefined
@@ -133,11 +134,19 @@ export class MPDClient implements MPDClientInterface {
         window: [0, limit] as [number, number],
       }
       : undefined;
-    const res = await this.mpd.find({
+    const filter: AnyFilter = [{
       tag: "album",
       value: album,
-    }, opts);
-    return parseList(res, TrackTransform, "file", true);
+    }];
+
+    if (artist) {
+      filter.push({
+        tag: "albumartist",
+        value: artist,
+      });
+    }
+    const result = await this.mpd.find(filter, opts);
+    return parseList(result, TrackTransform, "file", true);
   }
 
   async status(): Promise<ResolvedTransformer<typeof StatusTransform>> {
