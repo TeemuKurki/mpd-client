@@ -96,7 +96,7 @@ export class MPDClient implements MPDClientInterface {
   }
 
   async play(pos?: number): Promise<void> {
-    if (!pos) {
+    if (pos === undefined) {
       await this.mpd.pause();
     } else {
       await this.mpd.play(pos);
