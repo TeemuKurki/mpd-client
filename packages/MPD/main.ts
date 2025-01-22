@@ -63,12 +63,18 @@ export class MPDClient implements MPDClientInterface {
   async addToQueue(params: {
     filter?: AnyFilter;
     uri?: string;
-  }): Promise<void> {
+  }): Promise<number> {
+    const currentQueue = await this.queue();
+    const lastTrack = currentQueue.at(-1);
     if (params.uri) {
       await this.mpd.add(params.uri);
     } else if (params.filter) {
       await this.mpd.findAdd(params.filter);
     }
+    if (!lastTrack) {
+      return 0;
+    }
+    return Number.parseInt(lastTrack.Pos as string, 10) + 1;
   }
 
   /**

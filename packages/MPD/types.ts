@@ -960,7 +960,7 @@ export interface MPDClientInterface {
   queue(): Promise<Record<string, unknown>[]>;
   clearQueue(): Promise<void>;
   clearRestOfQueue(): Promise<void>;
-  addToQueue(params: { filter?: AnyFilter; uri?: string }): Promise<void>;
+  addToQueue(params: { filter?: AnyFilter; uri?: string }): Promise<number>;
   addAlbumToQueue(album: string, artist?: string): Promise<{
     albumPos: number;
   }>;
