@@ -961,15 +961,19 @@ export interface MPDClientInterface {
   clearQueue(): Promise<void>;
   clearRestOfQueue(): Promise<void>;
   addToQueue(params: { filter?: AnyFilter; uri?: string }): Promise<number>;
-  addAlbumToQueue(album: string, artist?: string): Promise<{
+  addAlbumToQueue(album: string, artist?: string, artistTag?: Tag): Promise<{
     albumPos: number;
   }>;
-  listArtists(): Promise<string[]>;
+  listArtists(artistTag?: Tag): Promise<string[]>;
   listAlbums(
     artist?: string,
+    artistTag?: Tag,
   ): Promise<{ group: string; values: string[] }[]>;
   getTracks(
     album: string,
+    artist?: string,
+    limit?: number,
+    artistTag?: Tag,
   ): Promise<ResolvedTransformer<typeof TrackTransform>[]>;
   status(): Promise<ResolvedTransformer<typeof StatusTransform>>;
   stats(): Promise<ResolvedTransformer<typeof StatsTransform>>;

@@ -80,16 +80,21 @@ export class MPDClient implements MPDClientInterface {
   /**
    * Add an album to the queue
    */
-  async addAlbumToQueue(album: string, artist?: string): Promise<{
+  async addAlbumToQueue(
+    album: string,
+    artist?: string,
+    artistTag: Tag = "albumartist",
+  ): Promise<{
     albumPos: number;
   }> {
     const filterParams: Filter[] = [{ tag: "album", value: album }];
     if (artist) {
-      filterParams.push({ tag: "artist", value: artist });
+      filterParams.push({ tag: artistTag, value: artist });
     }
     const filter = createFilter(filterParams);
     const currentQueue = await this.queue();
     const lastTrack = currentQueue.at(-1);
+
     await this.mpd.findAdd(filter);
     if (!lastTrack || !lastTrack.Pos) {
       return {
@@ -109,31 +114,33 @@ export class MPDClient implements MPDClientInterface {
     }
   }
 
-  async listArtists(): Promise<string[]> {
-    const response = await this.mpd.list("albumartist");
-    const res = parseUnknownList(response, "albumartist");
+  async listArtists(artistTag: Tag = "albumartist"): Promise<string[]> {
+    const response = await this.mpd.list(artistTag);
+    const res = parseUnknownList(response, artistTag);
     return res.map((artist) => artist.AlbumArtist as string).filter(Boolean);
   }
   async listAlbums(
     artist?: string,
+    artistTag: Tag = "albumartist",
   ): Promise<{ group: string; values: string[] }[]> {
     const filter: Filter | undefined = artist
       ? {
-        tag: "albumartist",
+        tag: artistTag,
         value: artist,
       }
       : undefined;
     const result = await this.mpd.list("album", {
-      group: "albumartist",
+      group: artistTag,
       filter: filter,
     });
-    return parseUnknownGroup(result, "albumartist");
+    return parseUnknownGroup(result, artistTag);
   }
 
   async getTracks(
     album: string,
     artist?: string,
     limit?: number,
+    artistTag: Tag = "albumartist",
   ): Promise<ResolvedTransformer<typeof TrackTransform>[]> {
     const opts = limit !== undefined
       ? {
@@ -147,7 +154,7 @@ export class MPDClient implements MPDClientInterface {
 
     if (artist) {
       filter.push({
-        tag: "albumartist",
+        tag: artistTag,
         value: artist,
       });
     }
