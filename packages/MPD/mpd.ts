@@ -79,10 +79,6 @@ export class MPD implements MPDProtocol {
     this.#host = host, this.#port = port;
   }
 
-  /* async connect() {
-    await Promise.all([this.#conn.connect(), this.#idleConnection.connect()]);
-  } */
-
   /**
    * Send message to MPD and returns response
    * @param message Message to send
@@ -92,7 +88,6 @@ export class MPD implements MPDProtocol {
   ): Promise<string> {
     if (this.idling) {
       const idleConnection = await this.#conn.connect(this.#host, this.#port);
-      //console.log("Idling, sending noidle")
       const noidleBuffer = new Uint8Array(128);
       await idleConnection.write(new TextEncoder().encode("noidle\n"));
       await idleConnection.read(noidleBuffer);
@@ -190,7 +185,6 @@ export class MPD implements MPDProtocol {
   }
   async pause(state?: 1 | 0): Promise<void> {
     const cmd = `pause ${state ?? ""}`;
-    console.log(cmd);
     await this.sendCommand(cmd);
   }
   async play(SONGPOS: number): Promise<void> {
