@@ -522,7 +522,7 @@ export interface MPDProtocol {
   find(
     filter: AnyFilter,
     options?: {
-      sort?: { tag: Tag; order?: "ASC" | "DEC" };
+      sort?: { tag: Tag; descending?: boolean };
       window?: Range;
     },
   ): Promise<string>;
@@ -604,7 +604,7 @@ export interface MPDProtocol {
   search(
     filter: AnyFilter,
     options?: {
-      sort?: { tag: Tag; order?: "ASC" | "DEC" };
+      sort?: { tag: Tag; descending?: boolean };
       window?: Range;
     },
   ): Promise<string>;
@@ -616,7 +616,7 @@ export interface MPDProtocol {
    * @param options.position Add songs to position in queue
    */
   searchAdd(filter: AnyFilter, options?: {
-    sort?: { tag: Tag; order?: "ASC" | "DEC" };
+    sort?: { tag: Tag; descending?: boolean };
     window?: Range;
     position?: number;
   }): Promise<string>;
@@ -634,7 +634,7 @@ export interface MPDProtocol {
     name: string,
     filter: AnyFilter,
     options?: {
-      sort?: { tag: Tag; order?: "ASC" | "DEC" };
+      sort?: { tag: Tag; descending?: boolean };
       window?: Range;
       position?: number;
     },
@@ -949,11 +949,6 @@ export interface MPDProtocol {
   sendCommandBinary(
     message: string,
   ): Promise<BinaryResponse>;
-
-  /**
-   * Connect to MPD.
-   */
-  //connect(): Promise<void>;
 }
 
 export interface MPDClientInterface {

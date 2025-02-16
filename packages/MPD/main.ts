@@ -13,6 +13,7 @@ import type {
   AnyFilter,
   Filter,
   MPDClientInterface,
+  MPDProtocol,
   ResolvedTransformer,
   Tag,
 } from "./types.ts";
@@ -24,8 +25,8 @@ export interface TCPClient<T = TCPConnection> {
 }
 
 export class MPDClient implements MPDClientInterface {
-  mpd: MPD;
-  constructor(mpd: MPD) {
+  mpd: MPDProtocol;
+  constructor(mpd: MPDProtocol) {
     this.mpd = mpd;
   }
 
