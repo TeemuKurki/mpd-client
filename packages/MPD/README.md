@@ -1,5 +1,7 @@
 # MPD Client for JavaScript
 
+[![JSR](https://jsr.io/badges/@teemukurki/mpd)](https://jsr.io/@teemukurki/mpd)
+
 This documentation provides an overview of the MPD Client written in Deno. It
 allows you to interface with an MPD (Music Player Daemon) server, enabling
 control over music playback, querying the song queue, and managing the MPD
@@ -18,7 +20,7 @@ The client allows:
 - Manipulating the song queue, adding or removing songs.
 
 The client is designed to be runtime agnostic. To achieve this, we have to
-separate TCP calls for the main MPD client.
+separate TCP calls from the main MPD client.
 
 ## Usage
 
