@@ -36,6 +36,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: verify
     steps:
+      - name: Setup repo
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Publish package
+        working-directory: "./packages/MPD"
         run: deno publish
 
