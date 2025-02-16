@@ -37,6 +37,5 @@ jobs:
     needs: verify
     steps:
       - name: Publish package
-        working-directory: "./packages/MPD"
         run: deno publish
 
