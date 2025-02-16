@@ -20,7 +20,6 @@ import { createFilter } from "./utils.ts";
 import type { TCPConnection } from "./utils.ts";
 
 export interface TCPClient<T = TCPConnection> {
-  new (connetion: any): T;
   connect(hostname: string, port: number): Promise<T>;
 }
 
@@ -31,6 +30,13 @@ export class MPDClient implements MPDClientInterface {
   }
 
   //TODO: implement timeout and host/port from environment variables. https://mpd.readthedocs.io/en/latest/client.html#environment-variables
+  /**
+   * Initialize MPDClient with a provided TCPClient
+   * @param connectionClass TCPClient class
+   * @param hostname MPD server host
+   * @param port MPD server port
+   * @returns new MPDClient with provided TCPClient
+   */
   static init(
     connectionClass: TCPClient,
     hostname: string,
@@ -39,14 +45,24 @@ export class MPDClient implements MPDClientInterface {
     return new MPDClient(new MPD(connectionClass, hostname, port));
   }
 
+  /**
+   * Returns infromation of all tracks in the current queue
+   */
   async queue(): Promise<Record<string, unknown>[]> {
     const response = await this.mpd.playlistInfo();
     return parseUnknownList(response, "file");
   }
 
+  /**
+   * Clears current queue
+   */
   async clearQueue(): Promise<void> {
     await this.mpd.clear();
   }
+
+  /**
+   * Clears the current queue from current song position onwards
+   */
   async clearRestOfQueue(): Promise<void> {
     const currentSong = await this.currentSong();
     const currentPosition = currentSong?.Pos;
@@ -77,9 +93,6 @@ export class MPDClient implements MPDClientInterface {
     return Number.parseInt(lastTrack.Pos as string, 10) + 1;
   }
 
-  /**
-   * Add an album to the queue
-   */
   async addAlbumToQueue(
     album: string,
     artist?: string,
@@ -119,6 +132,7 @@ export class MPDClient implements MPDClientInterface {
     const res = parseUnknownList(response, artistTag);
     return res.map((artist) => artist.AlbumArtist as string).filter(Boolean);
   }
+
   async listAlbums(
     artist?: string,
     artistTag: Tag = "albumartist",
@@ -136,7 +150,7 @@ export class MPDClient implements MPDClientInterface {
     return parseUnknownGroup(result, artistTag);
   }
 
-  async getTracks(
+  async listTracks(
     album: string,
     artist?: string,
     limit?: number,
@@ -166,21 +180,10 @@ export class MPDClient implements MPDClientInterface {
     const status = await this.mpd.status();
     return parse(status, StatusTransform);
   }
+
   async stats(): Promise<ResolvedTransformer<typeof StatsTransform>> {
     const status = await this.mpd.stats();
     return parse(status, StatsTransform);
-  }
-
-  async info(): Promise<{
-    currentSong: Record<string, string>;
-    status: ResolvedTransformer<typeof StatusTransform>;
-    stats: ResolvedTransformer<typeof StatsTransform>;
-  }> {
-    return {
-      currentSong: await this.currentSong(),
-      status: await this.status(),
-      stats: await this.stats(),
-    };
   }
 
   async list(type: Tag, options: {

@@ -957,31 +957,73 @@ export interface MPDProtocol {
 }
 
 export interface MPDClientInterface {
+  /**
+   * Returns infromation of all tracks in the current queue
+   */
   queue(): Promise<Record<string, unknown>[]>;
+  /**
+   * Clears current queue
+   */
   clearQueue(): Promise<void>;
+  /**
+   * Clears the current queue from current song position onwards
+   */
   clearRestOfQueue(): Promise<void>;
+  /**
+   * Add songs to the queue based on provided filter or uri. If both are provided, uri will be used.
+   */
   addToQueue(params: { filter?: AnyFilter; uri?: string }): Promise<number>;
+  /**
+   * Add all tracks from an album to the queue
+   */
   addAlbumToQueue(album: string, artist?: string, artistTag?: Tag): Promise<{
     albumPos: number;
   }>;
+  /**
+   * Starts playback. If no `pos` play from current song
+   * @param pos Start playback from position in queue
+   */
+  play(pos?: number): Promise<void>;
+  /**
+   * Lists all artists.
+   * @param  artistTag Find artists based on Tag. Defaults to "albumartist"
+   */
   listArtists(artistTag?: Tag): Promise<string[]>;
+  /**
+   * List all albums from artist
+   * @param artist Name of the artist
+   * @param artistTag Find artists based on Tag. Defaults to "albumartist"
+   */
   listAlbums(
     artist?: string,
     artistTag?: Tag,
   ): Promise<{ group: string; values: string[] }[]>;
-  getTracks(
+  /**
+   * List tracks from album
+   * @param album Name of the album
+   * @param artist Name of the artist
+   * @param limit Limit of returned tracks
+   * @param artistTag Find artists based on Tag. Defaults to "albumartist"
+   */
+  listTracks(
     album: string,
     artist?: string,
     limit?: number,
     artistTag?: Tag,
   ): Promise<ResolvedTransformer<typeof TrackTransform>[]>;
+  /**
+   * Displays the current status of the player.
+   */
   status(): Promise<ResolvedTransformer<typeof StatusTransform>>;
+  /**
+   * Shows statistics about the database.
+   */
   stats(): Promise<ResolvedTransformer<typeof StatsTransform>>;
-  info(): Promise<{
-    currentSong: Record<string, string>;
-    status: ResolvedTransformer<typeof StatusTransform>;
-    stats: ResolvedTransformer<typeof StatsTransform>;
-  }>;
+  /**
+   * Lists all ionformation based on type and options. TYPE can be any tag supported by MPD.
+   * @param type Tag supported by MPD
+   * @param options Options for filtering and grouping tag values
+   */
   list(type: Tag, options?: {
     filter?: AnyFilter;
     group: Tag;
@@ -998,9 +1040,10 @@ export interface MPDClientInterface {
   }): Promise<
     Record<string, unknown>[] | { group: string; values: string[] }[]
   >;
+  /**
+   * Displays the current song in the playlist.
+   */
   currentSong(): Promise<Record<string, unknown>>;
-  //disconnect(): void;
-  //connect(): Promise<void>;
 }
 
 // -- Transformers --

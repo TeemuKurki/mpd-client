@@ -189,7 +189,9 @@ export class MPD implements MPDProtocol {
     this.sendCommand(`next`);
   }
   async pause(state?: 1 | 0): Promise<void> {
-    await this.sendCommand(`pause ${state ?? ""}`);
+    const cmd = `pause ${state ?? ""}`;
+    console.log(cmd);
+    await this.sendCommand(cmd);
   }
   async play(SONGPOS: number): Promise<void> {
     this.sendCommand(`play ${SONGPOS}`);

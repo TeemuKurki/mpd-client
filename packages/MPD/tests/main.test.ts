@@ -1,3 +1,4 @@
+// deno-lint-ignore-file require-await no-explicit-any
 import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import { type Spy, spy } from "jsr:@std/testing/mock";
 import { MPDClient } from "../main.ts";
@@ -130,7 +131,9 @@ describe("MPD class tests", () => {
   });
   describe("Error handling", () => {
     it("should throw an error if the result is an ACK", async () => {
-      readAllSpy = spy(async () => "ACK some error\n");
+      readAllSpy = spy(
+        async () => "ACK some error\n",
+      );
       const client = await createClient();
       const error = await assertRejects(
         () => client.mpd.status(),
@@ -202,13 +205,13 @@ describe("MPDClient class tests", () => {
     const client = await createClient();
     await client.addToQueue({ uri: "file1" });
     const input = new TextEncoder().encode("add file1\n");
-    assertSpyConnectArgs(writeSpy, 0, [input]);
+    assertSpyConnectArgs(writeSpy, 1, [input]);
   });
   it("should be able to add a track to the queue with filter", async () => {
     const client = await createClient();
     await client.addToQueue({ filter: { tag: "track", value: "track1" } });
     const input = new TextEncoder().encode("findadd \"(track == 'track1')\"\n");
-    assertSpyConnectArgs(writeSpy, 0, [input]);
+    assertSpyConnectArgs(writeSpy, 1, [input]);
   });
   it("should be able to add album to the queue", async () => {
     const client = await createClient();
@@ -227,7 +230,7 @@ describe("MPDClient class tests", () => {
       "playlistinfo\n",
     );
     const input = new TextEncoder().encode(
-      "findadd \"(album == 'album1')\" \"(artist == 'artist1')\"\n",
+      "findadd \"(album == 'album1')\" \"(albumartist == 'artist1')\"\n",
     );
     assertSpyConnectArgs(writeSpy, 0, [getCurrPlaylist]);
     assertSpyConnectArgs(writeSpy, 1, [input]);
