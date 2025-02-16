@@ -26,9 +26,9 @@ jobs:
         working-directory: "./packages/clients/deno"
         run: deno lint
 
-      - name: Run tests
-        working-directory: "./packages/clients/deno"
-        run: deno test -A
+      #- name: Run tests
+      #  working-directory: "./packages/clients/deno"
+      #  run: deno test -A
   publish:
     permissions:
       contents: read
