@@ -22,9 +22,18 @@ The client allows:
 The client is designed to be runtime agnostic. To achieve this, we have to
 separate TCP calls from the main MPD client.
 
-## Usage
+## Installation
 
-```javascript
+The MPD Client can be installed from JSR.
+
+```bash
+deno add jsr:@teemukurki/mpd # Install MPD Client
+deno add jsr:@teemukurki/mpd-deno-client # Install Deno TCP client
+```
+
+## Basic usage
+
+```typescript
 import { TCPClient } from "@teemukurki/mpd-deno-client";
 import { MPDClient } from "@teemukurki/mpd";
 
