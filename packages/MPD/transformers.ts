@@ -1,16 +1,27 @@
-import type {
-  ResolvedTransformer,
-  StatsTransformType,
-  StatusTransformType,
-  TrackTransformType,
-  Transformer,
-} from "./types.ts";
+type MPDTransformer = Record<string, (value: string) => any>;
+
+/**
+ * @internal
+ */
+export type ConstructorToType<T> = T extends (value: string) => infer R ? R
+  : string;
+
+/**
+ * Resolve transformer value methods into types
+ */
+export type ResolvedTransformer<T> = {
+  [K in keyof T]: ConstructorToType<T[K]>;
+};
+type Bool = 0 | 1;
 
 function Bool(value: string): 0 | 1 {
   return value === "1" ? 1 : 0;
 }
 
-export const StatusTransform: StatusTransformType = {
+/**
+ * Handle status MPD meta info
+ */
+export const StatusTransform = {
   partition: String,
   volume: Number,
   repeat: Bool,
@@ -34,9 +45,12 @@ export const StatusTransform: StatusTransformType = {
   audio: String,
   updating_db: String,
   error: String,
-} satisfies Transformer;
+} satisfies MPDTransformer;
 
-export const StatsTransform: StatsTransformType = {
+/**
+ * Handle stats MPD meta info
+ */
+export const StatsTransform = {
   artists: Number,
   albums: Number,
   songs: Number,
@@ -44,9 +58,12 @@ export const StatsTransform: StatsTransformType = {
   db_playtime: Number,
   db_update: Number,
   playtime: Number,
-} satisfies Transformer;
+} satisfies MPDTransformer;
 
-export const TrackTransform: TrackTransformType = {
+/**
+ * Handle track MPD meta info
+ */
+export const TrackTransform = {
   file: String,
   Format: String,
   Album: String,
@@ -69,9 +86,16 @@ export const TrackTransform: TrackTransformType = {
   Genre: Array,
   Time: Number,
   duration: Number,
-} satisfies Transformer;
+} satisfies MPDTransformer;
 
-export const parse = <T extends Record<string, any>>(
+/**
+ * Parse MPD response with transformer
+ * @param input MPD response
+ * @param transformer Response transformer
+ * @param allowUnknownKeys Include unknown keys
+ * @returns Response object based on transformer
+ */
+export const parse = <T extends MPDTransformer>(
   input: string,
   transformer: T,
   allowUnknownKeys = false,
@@ -99,6 +123,11 @@ export const parse = <T extends Record<string, any>>(
     }, {} as ResolvedTransformer<T>);
 };
 
+/**
+ * Parse response into plain object
+ * @param input MPD response
+ * @returns Response transformed into plain object
+ */
 export const parseUnknown = (input: string): Record<string, string> => {
   return input
     .split("\n")
@@ -114,8 +143,10 @@ export const parseUnknown = (input: string): Record<string, string> => {
 };
 
 /**
+ * Parse response into list of plain object.
  * @param input String returned from MPD
  * @param separatorTag Tag to separate groups. If not set, defaults to the first key in the list
+ * @returns List of plain objects
  */
 export const parseUnknownList = (
   input: string,
@@ -153,7 +184,16 @@ export const parseUnknownList = (
     });
   return result;
 };
-export const parseList = <T extends Transformer>(
+
+/**
+ * Parse MPD response into a list of objects with transformer
+ * @param input MPD response
+ * @param transformer Response transformer
+ * @param separatorTag Tag to separate groups. If not set, defaults to the first key in the list
+ * @param allowUnknownKeys Include unknown keys
+ * @returns List of transformed objects
+ */
+export const parseList = <T extends MPDTransformer>(
   input: string,
   transformer: T,
   separatorTag?: string,
@@ -181,6 +221,13 @@ export const parseList = <T extends Transformer>(
     }, {} as ResolvedTransformer<T>);
   });
 };
+
+/**
+ * Group MPD responses
+ * @param input MPD Response
+ * @param groupBy Group tag
+ * @returns
+ */
 export const parseUnknownGroup = (
   input: string,
   groupBy: string,

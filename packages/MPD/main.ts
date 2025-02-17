@@ -5,11 +5,12 @@ import {
   parseUnknown,
   parseUnknownGroup,
   parseUnknownList,
+  type ResolvedTransformer,
   StatsTransform,
   StatusTransform,
   TrackTransform,
 } from "./transformers.ts";
-import type { AnyFilter, Filter, ResolvedTransformer, Tag } from "./types.ts";
+import type { AnyFilter, Filter, Tag } from "./types.ts";
 import { createFilter } from "./utils.ts";
 import type { TCPConnection } from "./utils.ts";
 
@@ -17,8 +18,16 @@ export interface TCPClient<T = TCPConnection> {
   connect(hostname: string, port: number): Promise<T>;
 }
 
+/**
+ * MPD Client
+ */
 export class MPDClient {
+  /** MPD Protocol instance */
   public mpd: MPD;
+  /**
+   * Create MPD Client
+   * @param mpd MPD Protocol class instance
+   */
   constructor(mpd: MPD) {
     this.mpd = mpd;
   }
@@ -202,7 +211,7 @@ export class MPDClient {
     return parse(status, StatsTransform);
   }
   /**
-   * Lists all ionformation based on type and options. TYPE can be any tag supported by MPD.
+   * Lists all information based on type and options. TYPE can be any tag supported by MPD.
    * @param type Tag supported by MPD
    * @param options Options for filtering and grouping tag values
    */
@@ -213,6 +222,11 @@ export class MPDClient {
     group: string;
     values: string[];
   }[]>;
+  /**
+   * Lists all information based on type and options. TYPE can be any tag supported by MPD.
+   * @param type Tag supported by MPD
+   * @param options
+   */
   async list(type: Tag, options?: {
     filter?: AnyFilter;
     group?: undefined;

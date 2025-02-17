@@ -1,4 +1,4 @@
-type FilterCompareMethod =
+export type FilterCompareMethod =
   | "=="
   | "!="
   | "contains"
@@ -9,6 +9,9 @@ type FilterCompareMethod =
 
 //TODO: Enable non-tag based filters (ie. audioFormat, prio etc)
 //TODO: Enable negate option
+/**
+ * MPD Filter
+ */
 export type Filter = {
   tag: Tag;
   value: string;
@@ -18,7 +21,13 @@ export type Filter = {
   compare?: FilterCompareMethod;
 };
 
+/**
+ * MPD Range
+ */
 export type Range = [start: number, end: number];
+/**
+ * Response with binary data as Uint8Array and meta data
+ */
 export type BinaryResponse = {
   meta: {
     type?: string;
@@ -27,6 +36,9 @@ export type BinaryResponse = {
   binary: Uint8Array;
 };
 
+/**
+ * Any Filter type
+ */
 export type AnyFilter = Filter | Filter[] | string;
 
 /**
@@ -68,76 +80,3 @@ export type Tag =
   | "musicbrainz_releasegroupid"
   | "musicbrainz_releasetrackid"
   | "musicbrainz_workid";
-
-// -- Transformers --
-
-export type Transformer = Record<string, (value: string) => any>;
-
-type ConstructorToType<T> = T extends (value: string) => infer R ? R : string;
-
-export type ResolvedTransformer<T> = {
-  [K in keyof T]: ConstructorToType<T[K]>;
-};
-type Bool = 0 | 1;
-type TransformerAttribute<T> = (value: string) => T;
-
-export type StatusTransformType = {
-  partition: TransformerAttribute<string>;
-  volume: TransformerAttribute<number>;
-  repeat: TransformerAttribute<Bool>;
-  random: TransformerAttribute<Bool>;
-  single: TransformerAttribute<Bool | "oneshot">;
-  consume: TransformerAttribute<Bool>;
-  playlist: TransformerAttribute<number>;
-  playlistlength: TransformerAttribute<number>;
-  state: TransformerAttribute<"play" | "stop" | "pause">;
-  song: TransformerAttribute<number>;
-  songid: TransformerAttribute<number>;
-  nextsong: TransformerAttribute<number>;
-  nextsongid: TransformerAttribute<number>;
-  time: TransformerAttribute<string>;
-  elapsed: TransformerAttribute<number>;
-  duration: TransformerAttribute<number>;
-  bitrate: TransformerAttribute<number>;
-  xfade: TransformerAttribute<number>;
-  mixrampdb: TransformerAttribute<number>;
-  mixrampdelay: TransformerAttribute<number>;
-  audio: TransformerAttribute<string>;
-  updating_db: TransformerAttribute<string>;
-  error: TransformerAttribute<string>;
-};
-
-export type StatsTransformType = {
-  artists: TransformerAttribute<number>;
-  albums: TransformerAttribute<number>;
-  songs: TransformerAttribute<number>;
-  uptime: TransformerAttribute<number>;
-  db_playtime: TransformerAttribute<number>;
-  db_update: TransformerAttribute<number>;
-  playtime: TransformerAttribute<number>;
-};
-
-export type TrackTransformType = {
-  file: TransformerAttribute<string>;
-  Format: TransformerAttribute<string>;
-  Album: TransformerAttribute<string>;
-  Comment: TransformerAttribute<string>;
-  Disc: TransformerAttribute<number>;
-  Track: TransformerAttribute<number>;
-  Title: TransformerAttribute<string>;
-  Date: TransformerAttribute<string>;
-  Artist: TransformerAttribute<string>;
-  OriginalDate: TransformerAttribute<string>;
-  MUSICBRAINZ_ALBUMID: TransformerAttribute<string>;
-  MUSICBRAINZ_ALBUMARTISTID: TransformerAttribute<string>;
-  MUSICBRAINZ_TRACKID: TransformerAttribute<string>;
-  MUSICBRAINZ_ARTISTID: TransformerAttribute<string>;
-  MUSICBRAINZ_RELEASETRACKID: TransformerAttribute<string>;
-  AlbumArtist: TransformerAttribute<string>;
-  AlbumArtistSort: TransformerAttribute<string>;
-  Label: TransformerAttribute<string>;
-  ArtistSort: TransformerAttribute<string>;
-  Genre: TransformerAttribute<Array<string>>;
-  Time: TransformerAttribute<number>;
-  duration: TransformerAttribute<number>;
-};

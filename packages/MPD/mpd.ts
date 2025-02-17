@@ -26,7 +26,7 @@ type ListOptions = {
   filter?: AnyFilter;
 };
 
-type ListGroupOptions = {
+export type ListGroupOptions = {
   /**
    * Filter to apply to the list.
    */
