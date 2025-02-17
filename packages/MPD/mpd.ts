@@ -756,7 +756,7 @@ export class MPD {
    * @deprecated
    * @returns
    */
-  async listAll(uri: string) {
+  async listAll(uri: string): Promise<string> {
     return this.sendCommand(`listall ${uri}`);
   }
 
@@ -767,7 +767,7 @@ export class MPD {
    * @param uri
    * @deprecated
    */
-  async listAllInfo(uri: string) {
+  async listAllInfo(uri: string): Promise<string> {
     return this.sendCommand(`listallinfo ${uri}`);
   }
 

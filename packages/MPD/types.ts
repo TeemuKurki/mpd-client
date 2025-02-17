@@ -80,3 +80,87 @@ export type Tag =
   | "musicbrainz_releasegroupid"
   | "musicbrainz_releasetrackid"
   | "musicbrainz_workid";
+
+export type MPDTransformer = Record<string, (value: string) => unknown>;
+
+/**
+ * @internal
+ */
+export type ConstructorToType<T> = T extends (value: string) => infer R ? R
+  : string;
+
+/**
+ * Resolve transformer value methods into types
+ */
+export type ResolvedTransformer<T> = {
+  [K in keyof T]: ConstructorToType<T[K]>;
+};
+export type Bool = 0 | 1;
+
+export type TransformerAttribute<T> = (value: string) => T;
+
+export type StatusTransformType = {
+  partition: TransformerAttribute<string>;
+  volume: TransformerAttribute<number>;
+  repeat: TransformerAttribute<Bool>;
+  random: TransformerAttribute<Bool>;
+  single: TransformerAttribute<Bool | "oneshot">;
+  consume: TransformerAttribute<Bool>;
+  playlist: TransformerAttribute<number>;
+  playlistlength: TransformerAttribute<number>;
+  state: TransformerAttribute<"play" | "stop" | "pause">;
+  song: TransformerAttribute<number>;
+  songid: TransformerAttribute<number>;
+  nextsong: TransformerAttribute<number>;
+  nextsongid: TransformerAttribute<number>;
+  time: TransformerAttribute<string>;
+  elapsed: TransformerAttribute<number>;
+  duration: TransformerAttribute<number>;
+  bitrate: TransformerAttribute<number>;
+  xfade: TransformerAttribute<number>;
+  mixrampdb: TransformerAttribute<number>;
+  mixrampdelay: TransformerAttribute<number>;
+  audio: TransformerAttribute<string>;
+  updating_db: TransformerAttribute<string>;
+  error: TransformerAttribute<string>;
+};
+/**
+ * Handle stats MPD meta info
+ */
+export type StatsTransformType = {
+  artists: TransformerAttribute<number>;
+  albums: TransformerAttribute<number>;
+  songs: TransformerAttribute<number>;
+  uptime: TransformerAttribute<number>;
+  db_playtime: TransformerAttribute<number>;
+  db_update: TransformerAttribute<number>;
+  playtime: TransformerAttribute<number>;
+};
+
+/**
+ * Handle track MPD meta info
+ */
+export type TrackTransformType = {
+  file: TransformerAttribute<string>;
+  Format: TransformerAttribute<string>;
+  Album: TransformerAttribute<string>;
+  Comment: TransformerAttribute<string>;
+  Disc: TransformerAttribute<number>;
+  Track: TransformerAttribute<number>;
+  Title: TransformerAttribute<string>;
+  Date: TransformerAttribute<string>;
+  Artist: TransformerAttribute<string>;
+  OriginalDate: TransformerAttribute<string>;
+  MUSICBRAINZ_ALBUMID: TransformerAttribute<string>;
+  MUSICBRAINZ_ALBUMARTISTID: TransformerAttribute<string>;
+  MUSICBRAINZ_TRACKID: TransformerAttribute<string>;
+  MUSICBRAINZ_ARTISTID: TransformerAttribute<string>;
+  MUSICBRAINZ_RELEASETRACKID: TransformerAttribute<string>;
+  AlbumArtist: TransformerAttribute<string>;
+  AlbumArtistSort: TransformerAttribute<string>;
+  Label: TransformerAttribute<string>;
+  ArtistSort: TransformerAttribute<string>;
+  Genre: TransformerAttribute<Array<string>>;
+  Time: TransformerAttribute<number>;
+  duration: TransformerAttribute<number>;
+};

@@ -5,12 +5,11 @@ import {
   parseUnknown,
   parseUnknownGroup,
   parseUnknownList,
-  type ResolvedTransformer,
   StatsTransform,
   StatusTransform,
   TrackTransform,
 } from "./transformers.ts";
-import type { AnyFilter, Filter, Tag } from "./types.ts";
+import type { AnyFilter, Filter, ResolvedTransformer, Tag } from "./types.ts";
 import { createFilter } from "./utils.ts";
 import type { TCPConnection } from "./utils.ts";
 

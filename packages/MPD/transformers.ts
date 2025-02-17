@@ -1,18 +1,12 @@
-type MPDTransformer = Record<string, (value: string) => any>;
+// deno-lint-ignore-file no-explicit-any
 
-/**
- * @internal
- */
-export type ConstructorToType<T> = T extends (value: string) => infer R ? R
-  : string;
-
-/**
- * Resolve transformer value methods into types
- */
-export type ResolvedTransformer<T> = {
-  [K in keyof T]: ConstructorToType<T[K]>;
-};
-type Bool = 0 | 1;
+import type {
+  MPDTransformer,
+  ResolvedTransformer,
+  StatsTransformType,
+  StatusTransformType,
+  TrackTransformType,
+} from "./types.ts";
 
 function Bool(value: string): 0 | 1 {
   return value === "1" ? 1 : 0;
@@ -21,7 +15,7 @@ function Bool(value: string): 0 | 1 {
 /**
  * Handle status MPD meta info
  */
-export const StatusTransform = {
+export const StatusTransform: StatusTransformType = {
   partition: String,
   volume: Number,
   repeat: Bool,
@@ -50,7 +44,7 @@ export const StatusTransform = {
 /**
  * Handle stats MPD meta info
  */
-export const StatsTransform = {
+export const StatsTransform: StatsTransformType = {
   artists: Number,
   albums: Number,
   songs: Number,
@@ -63,7 +57,7 @@ export const StatsTransform = {
 /**
  * Handle track MPD meta info
  */
-export const TrackTransform = {
+export const TrackTransform: TrackTransformType = {
   file: String,
   Format: String,
   Album: String,
