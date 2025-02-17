@@ -9,14 +9,7 @@ import {
   StatusTransform,
   TrackTransform,
 } from "./transformers.ts";
-import type {
-  AnyFilter,
-  Filter,
-  MPDClientInterface,
-  MPDProtocol,
-  ResolvedTransformer,
-  Tag,
-} from "./types.ts";
+import type { AnyFilter, Filter, ResolvedTransformer, Tag } from "./types.ts";
 import { createFilter } from "./utils.ts";
 import type { TCPConnection } from "./utils.ts";
 
@@ -24,9 +17,9 @@ export interface TCPClient<T = TCPConnection> {
   connect(hostname: string, port: number): Promise<T>;
 }
 
-export class MPDClient implements MPDClientInterface {
-  mpd: MPDProtocol;
-  constructor(mpd: MPDProtocol) {
+export class MPDClient {
+  public mpd: MPD;
+  constructor(mpd: MPD) {
     this.mpd = mpd;
   }
 
@@ -93,7 +86,9 @@ export class MPDClient implements MPDClientInterface {
     }
     return Number.parseInt(lastTrack.Pos as string, 10) + 1;
   }
-
+  /**
+   * Add all tracks from an album to the queue
+   */
   async addAlbumToQueue(
     album: string,
     artist?: string,
@@ -119,7 +114,10 @@ export class MPDClient implements MPDClientInterface {
       albumPos: Number.parseInt(lastTrack.Pos as string, 10) + 1,
     };
   }
-
+  /**
+   * Starts playback. If no `pos` play from current song
+   * @param pos Start playback from position in queue
+   */
   async play(pos?: number): Promise<void> {
     if (pos === undefined) {
       await this.mpd.pause();
@@ -127,13 +125,20 @@ export class MPDClient implements MPDClientInterface {
       await this.mpd.play(pos);
     }
   }
-
+  /**
+   * Lists all artists.
+   * @param  artistTag Find artists based on Tag. Defaults to "albumartist"
+   */
   async listArtists(artistTag: Tag = "albumartist"): Promise<string[]> {
     const response = await this.mpd.list(artistTag);
     const res = parseUnknownList(response, artistTag);
     return res.map((artist) => artist.AlbumArtist as string).filter(Boolean);
   }
-
+  /**
+   * List all albums from artist
+   * @param artist Name of the artist
+   * @param artistTag Find artists based on Tag. Defaults to "albumartist"
+   */
   async listAlbums(
     artist?: string,
     artistTag: Tag = "albumartist",
@@ -150,7 +155,13 @@ export class MPDClient implements MPDClientInterface {
     });
     return parseUnknownGroup(result, artistTag);
   }
-
+  /**
+   * List tracks from album
+   * @param album Name of the album
+   * @param artist Name of the artist
+   * @param limit Limit of returned tracks
+   * @param artistTag Find artists based on Tag. Defaults to "albumartist"
+   */
   async listTracks(
     album: string,
     artist?: string,
@@ -176,17 +187,25 @@ export class MPDClient implements MPDClientInterface {
     const result = await this.mpd.find(filter, opts);
     return parseList(result, TrackTransform, "file", true);
   }
-
+  /**
+   * Displays the current status of the player.
+   */
   async status(): Promise<ResolvedTransformer<typeof StatusTransform>> {
     const status = await this.mpd.status();
     return parse(status, StatusTransform);
   }
-
+  /**
+   * Shows statistics about the database.
+   */
   async stats(): Promise<ResolvedTransformer<typeof StatsTransform>> {
     const status = await this.mpd.stats();
     return parse(status, StatsTransform);
   }
-
+  /**
+   * Lists all ionformation based on type and options. TYPE can be any tag supported by MPD.
+   * @param type Tag supported by MPD
+   * @param options Options for filtering and grouping tag values
+   */
   async list(type: Tag, options: {
     filter?: AnyFilter;
     group: Tag;
@@ -210,7 +229,9 @@ export class MPDClient implements MPDClientInterface {
     }
     return parseUnknownList(response, type);
   }
-
+  /**
+   * Displays the current song in the playlist.
+   */
   async currentSong(): Promise<Record<string, string>> {
     const response = await this.mpd.currentSong();
     return parseUnknown(response);

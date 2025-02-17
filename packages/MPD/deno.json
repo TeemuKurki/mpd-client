@@ -11,6 +11,7 @@
   },
   "exports": {
     ".": "./main.ts",
+    "./mpd": "./mpd.ts",
     "./transformers": "./transformers.ts"
   },
   "publish": {
