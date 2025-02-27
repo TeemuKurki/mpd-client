@@ -249,4 +249,17 @@ export class MPDClient {
     const response = await this.mpd.currentSong();
     return parseUnknown(response);
   }
+
+  /**
+   * Play next song in queue
+   */
+  async next(): Promise<void> {
+    await this.mpd.next();
+  }
+  /**
+   * Play previous song in queue
+   */
+  async previous(): Promise<void> {
+    await this.mpd.previous();
+  }
 }
