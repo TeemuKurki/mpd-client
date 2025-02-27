@@ -1,4 +1,4 @@
-import { MPD } from "./mpd.ts";
+import { MPDProtocol } from "./mpd.ts";
 import {
   parse,
   parseList,
@@ -22,12 +22,12 @@ export interface TCPClient<T = TCPConnection> {
  */
 export class MPDClient {
   /** MPD Protocol instance */
-  public mpd: MPD;
+  public mpd: MPDProtocol;
   /**
    * Create MPD Client
    * @param mpd MPD Protocol class instance
    */
-  constructor(mpd: MPD) {
+  constructor(mpd: MPDProtocol) {
     this.mpd = mpd;
   }
 
@@ -44,7 +44,7 @@ export class MPDClient {
     hostname: string,
     port: number,
   ): MPDClient {
-    return new MPDClient(new MPD(connectionClass, hostname, port));
+    return new MPDClient(new MPDProtocol(connectionClass, hostname, port));
   }
 
   /**

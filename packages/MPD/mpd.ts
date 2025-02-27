@@ -68,7 +68,7 @@ const handleError = (input: string): string => {
 /**
  * Implements MPD Protocol
  */
-export class MPD {
+export class MPDProtocol {
   #conn: TCPClient<TCPConnection>;
   idling: boolean = false;
   #host: string;
@@ -104,10 +104,9 @@ export class MPD {
   async idle(...subsystems: string[]): Promise<string> {
     if (!this.idling) {
       const connection = await this.#conn.connect(this.#host, this.#port);
-      await connection.write(
-        new TextEncoder().encode(`idle ${subsystems.join(" ")}\n`),
+      const result = await connection.sendCommand(
+        `idle ${subsystems.join(" ")}\n`,
       );
-      const result = await connection.readAll();
       return handleError(result);
     }
     throw new Error("Already idling");
@@ -118,10 +117,7 @@ export class MPD {
    */
   async noidle(): Promise<string> {
     const connection = await this.#conn.connect(this.#host, this.#port);
-    const noidleBuffer = new Uint8Array(128);
-    await connection.write(new TextEncoder().encode("noidle\n"));
-    await connection.read(noidleBuffer);
-    const result = new TextDecoder().decode(noidleBuffer);
+    const result = await connection.sendCommand("noidle\n", true);
     this.idling = false;
     return handleError(result);
   }
@@ -1295,14 +1291,10 @@ export class MPD {
     message: string,
   ): Promise<string> {
     if (this.idling) {
-      const idleConnection = await this.#conn.connect(this.#host, this.#port);
-      const noidleBuffer = new Uint8Array(128);
-      await idleConnection.write(new TextEncoder().encode("noidle\n"));
-      await idleConnection.read(noidleBuffer);
+      await this.noidle();
     }
     const connection = await this.#conn.connect(this.#host, this.#port);
-    await connection.write(new TextEncoder().encode(message + "\n"));
-    const response = await connection.readAll();
+    const response = await connection.sendCommand(message + "\n");
     connection.close();
     return response;
   }
@@ -1320,9 +1312,7 @@ export class MPD {
     const connection = await this.#conn.connect(this.#host, this.#port);
 
     if (this.idling) {
-      const noidleBuffer = new Uint8Array(128);
-      await connection.write(new TextEncoder().encode("noidle\n"));
-      await connection.read(noidleBuffer);
+      await this.noidle();
     }
 
     let off = offset;
@@ -1335,10 +1325,9 @@ export class MPD {
     };
     const chunks: Uint8Array[] = [];
     while (true) {
-      await connection.write(
-        new TextEncoder().encode(`${message} ${off}\n`),
+      const binary = await connection.sendBinaryCommand(
+        `${message} ${off}\n`,
       );
-      const binary = await connection.readAll(true);
       const res = handleBinaryResponse(binary);
 
       chunks.push(res.binary);

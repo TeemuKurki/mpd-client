@@ -2,18 +2,13 @@ import type { AnyFilter } from "./types.ts";
 import { indexOfNeedle } from "@std/bytes";
 
 export interface TCPConnection {
-  read: (buffer: Uint8Array) => Promise<number | null>;
-  readAll: {
-    (): Promise<string>;
-    (getInBinary: Falsy): Promise<string>;
-    (getInBinary: true): Promise<Uint8Array>;
-    (getInBinary?: boolean): Promise<string | Uint8Array>;
-  };
+  sendCommand: (command: string, immediate?: boolean) => Promise<string>;
+  sendBinaryCommand: (
+    command: string,
+    immediate?: boolean,
+  ) => Promise<Uint8Array>;
   close: () => void;
-  write: (data: Uint8Array) => Promise<number>;
 }
-
-type Falsy = false | undefined;
 
 export const createFilter = (filter?: AnyFilter): string => {
   const handleQuotes = (value: string, single?: boolean) => {

@@ -1,6 +1,6 @@
 {
   "name": "@teemukurki/mpd",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
   "tasks": {
     "dev": "deno run --watch main.ts"
