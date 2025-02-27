@@ -360,12 +360,6 @@
           "jsr:@std/assert@1",
           "jsr:@std/bytes@^1.0.4"
         ]
-      },
-      "packages/clients/deno": {
-        "dependencies": [
-          "jsr:@std/assert@^1.0.8",
-          "jsr:@std/bytes@^1.0.3"
-        ]
       }
     }
   }
