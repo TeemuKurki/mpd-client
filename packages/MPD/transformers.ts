@@ -198,9 +198,13 @@ export const parseList = <T extends MPDTransformer>(
     return Object.keys(item).reduce((acc, curr) => {
       if (curr in transformer) {
         const transform = transformer[curr];
+        let data = transform(item[curr] as any);
+        if (Array.isArray(data)) {
+          data = data.flat();
+        }
         return {
           ...acc,
-          [curr]: transform(item[curr] as any),
+          [curr]: data,
         };
       }
       if (allowUnknownKeys) {

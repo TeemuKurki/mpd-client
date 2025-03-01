@@ -52,7 +52,7 @@ export class MPDClient {
    */
   async queue(): Promise<Record<string, unknown>[]> {
     const response = await this.mpd.playlistInfo();
-    return parseUnknownList(response, "file");
+    return parseList(response, TrackTransform, "file");
   }
 
   /**
