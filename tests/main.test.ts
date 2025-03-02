@@ -1,16 +1,16 @@
 // deno-lint-ignore-file require-await no-explicit-any
 import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
 import { type Spy, spy } from "jsr:@std/testing/mock";
-import { MPDClient } from "../main.ts";
+import { MPDClient } from "../src/main.ts";
 
-import type { TCPConnection } from "../utils.ts";
+import type { TCPConnection } from "../src/utils.ts";
 import {
   assertEquals,
   assertInstanceOf,
   assertObjectMatch,
   assertRejects,
 } from "@std/assert";
-import { ACKError } from "../mpd.ts";
+import { ACKError } from "../src/mpd.ts";
 
 let closeSpy = spy(() => {});
 let readBinarySpy = spy(async (_buffer: string, _i?: boolean) =>

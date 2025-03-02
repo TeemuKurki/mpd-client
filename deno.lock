@@ -352,15 +352,8 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@std/assert@1"
-    ],
-    "members": {
-      "packages/MPD": {
-        "dependencies": [
-          "jsr:@std/assert@1",
-          "jsr:@std/bytes@^1.0.4"
-        ]
-      }
-    }
+      "jsr:@std/assert@1",
+      "jsr:@std/bytes@^1.0.4"
+    ]
   }
 }

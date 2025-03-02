@@ -6,7 +6,7 @@ import type {
   StatsTransformType,
   StatusTransformType,
   TrackTransformType,
-} from "./types.ts";
+} from "../src/types.ts";
 
 function Bool(value: string): 0 | 1 {
   return value === "1" ? 1 : 0;
