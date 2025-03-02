@@ -13,7 +13,7 @@ import {
 import { ACKError } from "../src/mpd.ts";
 
 let closeSpy = spy(() => {});
-let readBinarySpy = spy(async (_buffer: string, _i?: boolean) =>
+const readBinarySpy = spy(async (_buffer: string, _i?: boolean) =>
   new Uint8Array()
 );
 let readAllSpy = spy(async () => "");

@@ -19,15 +19,12 @@ jobs:
           deno-version: v2.x
 
       - name: Verify formatting
-        working-directory: "./packages/MPD"
         run: deno fmt --check
 
-      #- name: Run linter
-      #  working-directory: "./packages/MPD"
-      #  run: deno lint
+      - name: Run linter
+        run: deno lint
 
       - name: Run tests
-        working-directory: "./packages/MPD"
         run: deno test -A
   publish:
     permissions:
@@ -45,6 +42,4 @@ jobs:
           deno-version: v2.x
 
       - name: Publish package
-        working-directory: "./packages/MPD"
-
         run: deno publish
