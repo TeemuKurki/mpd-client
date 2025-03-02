@@ -17,7 +17,7 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-  
+
       - name: Verify formatting
         working-directory: "./packages/MPD"
         run: deno fmt --check
@@ -46,5 +46,5 @@ jobs:
 
       - name: Publish package
         working-directory: "./packages/MPD"
-        run: deno publish
 
+        run: deno publish
