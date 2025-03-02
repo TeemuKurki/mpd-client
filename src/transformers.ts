@@ -83,6 +83,18 @@ export const TrackTransform: TrackTransformType = {
 } satisfies MPDTransformer;
 
 /**
+ * Split MPD Tag into key-value pair. Handle values with ':'
+ * @param line MPD Tag line
+ * @returns Tag as key value pair
+ */
+const getKeyVal = (line: string): [key: string, value: string] => {
+  const separatorIndex = line.indexOf(":");
+  return [
+    line.substring(0, separatorIndex).trim(),
+    line.substring(separatorIndex + 1).trim(),
+  ];
+};
+/**
  * Parse MPD response with transformer
  * @param input MPD response
  * @param transformer Response transformer
@@ -129,7 +141,7 @@ export const parseUnknown = (input: string): Record<string, string> => {
       if (line.startsWith("ACK ")) {
         return { ...acc, ACK_ERROR: line };
       } else if (line.includes(":")) {
-        const [key, value] = line.split(": ");
+        const [key, value] = getKeyVal(line);
         return { ...acc, [key]: value };
       }
       return { ...acc };
@@ -152,9 +164,7 @@ export const parseUnknownList = (
     .split("\n")
     .filter((line) => line.includes(": "))
     .forEach((line, i) => {
-      const separatorIndex = line.indexOf(": ");
-      const key = line.substring(0, separatorIndex);
-      const value = line.substring(separatorIndex + 2);
+      const [key, value] = getKeyVal(line);
       if (!separatorTag && i === 0) {
         separator = key;
       }
@@ -235,9 +245,7 @@ export const parseUnknownGroup = (
     .split("\n")
     .filter((line) => line.includes(": "))
     .forEach((line) => {
-      const separatorIndex = line.indexOf(": ");
-      const key = line.substring(0, separatorIndex);
-      const value = line.substring(separatorIndex + 2);
+      const [key, value] = getKeyVal(line);
       if (key.toLowerCase() === groupBy.toLowerCase()) {
         res.push({
           group: value,
