@@ -2,7 +2,6 @@ import { MPDProtocol } from "./mpd.ts";
 import {
   parse,
   parseList,
-  parseUnknown,
   parseUnknownGroup,
   parseUnknownList,
   StatsTransform,
@@ -70,7 +69,7 @@ export class MPDClient {
     const currentPosition = currentSong?.Pos;
     if (currentPosition) {
       const playlist = await this.mpd.playlistInfo();
-      const delStart = Number.parseInt(currentPosition) + 1;
+      const delStart = currentPosition + 1;
       await this.mpd.delete([delStart, playlist.length]);
     }
   }
@@ -111,7 +110,6 @@ export class MPDClient {
     const filter = createFilter(filterParams);
     const currentQueue = await this.queue();
     const lastTrack = currentQueue.at(-1);
-
     await this.mpd.findAdd(filter);
     if (!lastTrack || !lastTrack.Pos) {
       return {
@@ -245,9 +243,11 @@ export class MPDClient {
   /**
    * Displays the current song in the playlist.
    */
-  async currentSong(): Promise<Record<string, string>> {
+  async currentSong(): Promise<
+    ResolvedTransformer<typeof TrackTransform>
+  > {
     const response = await this.mpd.currentSong();
-    return parseUnknown(response);
+    return parse(response, TrackTransform);
   }
 
   /**

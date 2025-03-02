@@ -80,6 +80,12 @@ export const TrackTransform: TrackTransformType = {
   Genre: Array,
   Time: Number,
   duration: Number,
+  Composer: String,
+  ComposerSort: String,
+  Conductor: String,
+  Performer: Array,
+  Pos: Number,
+  Id: Number,
 } satisfies MPDTransformer;
 
 /**

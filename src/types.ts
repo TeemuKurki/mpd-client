@@ -163,4 +163,10 @@ export type TrackTransformType = {
   Genre: TransformerAttribute<Array<string>>;
   Time: TransformerAttribute<number>;
   duration: TransformerAttribute<number>;
+  Composer: TransformerAttribute<string>;
+  ComposerSort: TransformerAttribute<string>;
+  Conductor: TransformerAttribute<string>;
+  Performer: TransformerAttribute<Array<string>>;
+  Pos: TransformerAttribute<number>;
+  Id: TransformerAttribute<number>;
 };
