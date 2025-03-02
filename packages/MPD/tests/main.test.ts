@@ -187,8 +187,8 @@ describe("MPDClient class tests", () => {
     const data = await client.queue();
     assertSpyConnectArgs(readAllSpy, 0, [input]);
     assertEquals(data.length, 2);
-    assertObjectMatch(data[0], { file: "file1", Track: "1" });
-    assertObjectMatch(data[1], { file: "file2", Track: "2" });
+    assertObjectMatch(data[0], { file: "file1", Track: 1 });
+    assertObjectMatch(data[1], { file: "file2", Track: 2 });
   });
   it("sould be able to clear queue", async () => {
     const client = await createClient();
