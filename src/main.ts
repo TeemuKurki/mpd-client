@@ -12,7 +12,15 @@ import type { AnyFilter, Filter, ResolvedTransformer, Tag } from "./types.ts";
 import { createFilter } from "./utils.ts";
 import type { TCPConnection } from "./utils.ts";
 
+/**
+ * TCP client interface
+ */
 export interface TCPClient<T = TCPConnection> {
+  /**
+   * TCP connection parameters
+   * @param hostname MPD server host
+   * @param port MPD server port
+   */
   connect(hostname: string, port: number): Promise<T>;
 }
 

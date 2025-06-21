@@ -1,3 +1,6 @@
+/**
+ * Possible types of compare methods for filters
+ */
 export type FilterCompareMethod =
   | "=="
   | "!="
@@ -81,8 +84,6 @@ export type Tag =
   | "musicbrainz_releasetrackid"
   | "musicbrainz_workid";
 
-export type MPDTransformer = Record<string, (value: string) => unknown>;
-
 /**
  * @internal
  */
@@ -91,14 +92,26 @@ export type ConstructorToType<T> = T extends (value: string) => infer R ? R
 
 /**
  * Resolve transformer value methods into types
+ * @internal
  */
 export type ResolvedTransformer<T> = {
   [K in keyof T]: ConstructorToType<T[K]>;
 };
+
+/**
+ * MPD boolean-like value (1 or 0)
+ */
 export type Bool = 0 | 1;
 
+/**
+ * Internal type for attribute transformer
+ * @internal
+ */
 export type TransformerAttribute<T> = (value: string) => T;
 
+/**
+ * MPD status
+ */
 export type StatusTransformType = {
   partition: TransformerAttribute<string>;
   volume: TransformerAttribute<number>;

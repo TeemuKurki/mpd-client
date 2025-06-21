@@ -8,13 +8,24 @@ import type { AnyFilter, BinaryResponse, Tag } from "./types.ts";
 import { concat } from "@std/bytes";
 import type { TCPClient } from "./main.ts";
 
+/**
+ * Error constructor for MPD response errors
+ * @extends Error
+ */
 export class ACKError extends Error {
+  /**
+   * Error message
+   * @param message
+   */
   constructor(message: string) {
     super(message);
     this.name = "ACKError";
   }
 }
 
+/**
+ * Options for list
+ */
 type ListOptions = {
   /**
    * Type of list to retrieve.
@@ -26,6 +37,9 @@ type ListOptions = {
   filter?: AnyFilter;
 };
 
+/**
+ * Options for grouping items in list
+ */
 export type ListGroupOptions = {
   /**
    * Filter to apply to the list.
@@ -66,13 +80,22 @@ const handleError = (input: string): string => {
 };
 
 /**
- * Implements MPD Protocol
+ * Provides a promise-based interface for interacting with MPD server commands.
  */
 export class MPDProtocol {
   #conn: TCPClient<TCPConnection>;
+  /**
+   * Is MPD server is currently idling
+   */
   idling: boolean = false;
   #host: string;
   #port: number;
+  /**
+   * Create MPDProtocol instance.
+   * @param connection TCPClient for making TCP calls to MPD server
+   * @param host MPD server host
+   * @param port MPD server port
+   */
   constructor(
     connection: TCPClient<TCPConnection>,
     host: string,
@@ -104,9 +127,11 @@ export class MPDProtocol {
   async idle(...subsystems: string[]): Promise<string> {
     if (!this.idling) {
       const connection = await this.#conn.connect(this.#host, this.#port);
+      this.idling = true;
       const result = await connection.sendCommand(
         `idle ${subsystems.join(" ")}\n`,
       );
+      connection.close();
       return handleError(result);
     }
     throw new Error("Already idling");
@@ -118,6 +143,7 @@ export class MPDProtocol {
   async noidle(): Promise<string> {
     const connection = await this.#conn.connect(this.#host, this.#port);
     const result = await connection.sendCommand("noidle\n", true);
+    connection.close();
     this.idling = false;
     return handleError(result);
   }
@@ -1278,11 +1304,6 @@ export class MPDProtocol {
     return handleError(result);
   }
 
-  async playlistinfo(): Promise<string> {
-    const result = await this.sendCommand("playlistinfo");
-    return handleError(result);
-  }
-
   /**
    * Send command to MPD and returns response as string
    * @param message Message to send
@@ -1338,6 +1359,7 @@ export class MPDProtocol {
         break;
       }
     }
+    connection.close();
     const data = concat(chunks);
     return {
       meta: meta,

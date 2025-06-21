@@ -1,12 +1,12 @@
 // deno-lint-ignore-file no-explicit-any
-
 import type {
-  MPDTransformer,
   ResolvedTransformer,
   StatsTransformType,
   StatusTransformType,
   TrackTransformType,
 } from "../src/types.ts";
+
+type MPDTransformer = Record<string, (value: string) => unknown>;
 
 function Bool(value: string): 0 | 1 {
   return value === "1" ? 1 : 0;
