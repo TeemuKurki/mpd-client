@@ -1,6 +1,6 @@
 // deno-lint-ignore-file require-await no-explicit-any
-import { beforeEach, describe, it } from "jsr:@std/testing/bdd";
-import { type Spy, spy } from "jsr:@std/testing/mock";
+import { beforeEach, describe, it } from "@std/testing/bdd";
+import { type Spy, spy } from "@std/testing/mock";
 import { MPDClient } from "../src/main.ts";
 
 import type { TCPConnection } from "../src/utils.ts";

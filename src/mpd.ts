@@ -90,6 +90,7 @@ export class MPDProtocol {
   idling: boolean = false;
   #host: string;
   #port: number;
+  #idleConn: TCPConnection | null;
   /**
    * Create MPDProtocol instance.
    * @param connection TCPClient for making TCP calls to MPD server
@@ -102,6 +103,7 @@ export class MPDProtocol {
     port: number,
   ) {
     this.#conn = connection;
+    this.#idleConn = null;
     this.#host = host, this.#port = port;
   }
 
@@ -122,30 +124,39 @@ export class MPDProtocol {
   }
   /**
    * Waits until there is a noteworthy change in one or more of MPD’s subsystems.
+   *
+   * {@link idle} and {@link noidle} uses separate long running connection. The idle connection is freed by calling {@link closeIdleConnection}
+   *
+   * Remember to call {@link closeIdleConnection()} when idle is no longer used.
    * @param subsystems See: {@link https://mpd.readthedocs.io/en/stable/protocol.html#command-idle|MPD subsystems}
    */
   async idle(...subsystems: string[]): Promise<string> {
     if (!this.idling) {
-      const connection = await this.#conn.connect(this.#host, this.#port);
       this.idling = true;
-      const result = await connection.sendCommand(
+      if (!this.#idleConn) {
+        this.#idleConn = await this.#conn.connect(this.#host, this.#port);
+      }
+      const result = await this.#idleConn.sendCommand(
         `idle ${subsystems.join(" ")}\n`,
       );
-      connection.close();
+      this.idling = false;
       return handleError(result);
     }
-    throw new Error("Already idling");
+    throw new Error(
+      `ACK [5@1] {idle ${subsystems.join(" ")}} Already idling`,
+    );
   }
   /**
    * Cancel idle
    * @returns idle result. Might be empty at this time.
    */
   async noidle(): Promise<string> {
-    const connection = await this.#conn.connect(this.#host, this.#port);
-    const result = await connection.sendCommand("noidle\n", true);
-    connection.close();
     this.idling = false;
-    return handleError(result);
+    if (this.#idleConn) {
+      const result = await this.#idleConn.sendCommand("noidle\n", true);
+      return handleError(result);
+    }
+    return "";
   }
 
   /**
@@ -1061,6 +1072,14 @@ export class MPDProtocol {
    */
   async close(): Promise<void> {
     this.sendCommand(`close`);
+  }
+
+  /**
+   * Closes and frees idle connection
+   */
+  async closeIdleConnection(): Promise<void> {
+    this.#idleConn?.close();
+    this.#idleConn = null;
   }
 
   /**
