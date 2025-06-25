@@ -34,24 +34,8 @@ export class MPDClient {
    * Create MPD Client
    * @param mpd MPD Protocol class instance
    */
-  constructor(mpd: MPDProtocol) {
-    this.mpd = mpd;
-  }
-
-  //TODO: implement timeout and host/port from environment variables. https://mpd.readthedocs.io/en/latest/client.html#environment-variables
-  /**
-   * Initialize MPDClient with a provided TCPClient
-   * @param connectionClass TCPClient class
-   * @param hostname MPD server host
-   * @param port MPD server port
-   * @returns new MPDClient with provided TCPClient
-   */
-  static init(
-    connectionClass: TCPClient,
-    hostname: string,
-    port: number,
-  ): MPDClient {
-    return new MPDClient(new MPDProtocol(connectionClass, hostname, port));
+  constructor(tcpClient: TCPClient, hostname: string, port: number) {
+    this.mpd = new MPDProtocol(tcpClient, hostname, port);
   }
 
   /**

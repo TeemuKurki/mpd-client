@@ -1,12 +1,32 @@
 import type { AnyFilter } from "./types.ts";
 import { indexOfNeedle } from "@std/bytes";
 
+/**
+ * TCPClient interface
+ */
 export interface TCPConnection {
+  /**
+   * Calls MPD server and waits for response
+   *
+   * @param command MPD command
+   * @param immediate if true, do not wait for response
+   * @returns MPD server response as string
+   */
   sendCommand: (command: string, immediate?: boolean) => Promise<string>;
+  /**
+   * Calls MPD server and waits for response
+   *
+   * @param command MPD command
+   * @param immediate if true, do not wait for response
+   * @returns MPD server response as Uint8Array
+   */
   sendBinaryCommand: (
     command: string,
     immediate?: boolean,
   ) => Promise<Uint8Array>;
+  /**
+   * Close connection
+   */
   close: () => void;
 }
 

@@ -27,20 +27,28 @@ separate TCP calls from the main MPD client.
 The MPD Client can be installed from JSR.
 
 ```bash
+# For Deno
 deno add jsr:@teemukurki/mpd # Install MPD Client
 deno add jsr:@teemukurki/mpd-deno-client # Install Deno TCP client
+```
+
+```bash
+# For NodeJS
+npx jsr add @teemukurki/mpd # Install MPD Client
+npx jsr add @teemukurki/mpd-node-client # Install NodeJS TCP client
 ```
 
 ## Basic usage
 
 ```typescript
 import { TCPClient } from "@teemukurki/mpd-deno-client";
+//import { TCPClient } from "@teemukurki/mpd-node-client"; // For NodeJS application
 import { MPDClient } from "@teemukurki/mpd";
 
 const MPD_HOST = "localhost";
 const MPD_PORT = 6600;
 
-const client = MPDClient.init(
+const client = new MPDClient(
   TCPClient,
   MPD_HOST,
   MPD_PORT,
