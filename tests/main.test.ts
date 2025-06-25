@@ -52,7 +52,7 @@ beforeEach(() => {
 });
 
 const createClient = async () => {
-  return MPDClient.init(MockTCPClient, "localhost", 6600);
+  return new MPDClient(MockTCPClient, "localhost", 6600);
 };
 
 describe("MPD class tests", () => {
